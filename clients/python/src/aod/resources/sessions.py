@@ -232,9 +232,7 @@ class Sessions:
             timeout=timeout,
             resources=resources,
         )
-        return self.wait_for_completion(
-            ack.id, on_event=on_event, collect_events=collect_events
-        )
+        return self.wait_for_completion(ack.id, on_event=on_event, collect_events=collect_events)
 
     def wait_for_completion(
         self,

@@ -231,9 +231,7 @@ def test_update_accepts_typed_skills(client, server, make_agent):
         skills=[InlineSkill(name="s", description="d", content="c")],
     )
 
-    assert server.requests[-1].body["skills"] == [
-        {"name": "s", "description": "d", "content": "c"}
-    ]
+    assert server.requests[-1].body["skills"] == [{"name": "s", "description": "d", "content": "c"}]
 
 
 def test_create_with_typed_mcp_servers(client, server, make_agent):
