@@ -406,9 +406,7 @@ def test_run_with_collect_events_false(client, server, make_session):
     server.register(
         "GET",
         f"/sessions/{sid}/stream",
-        _stream_responder(
-            [b'{"type":"start"}', b'{"type":"exit","id":1,"exit_code":0}']
-        ),
+        _stream_responder([b'{"type":"start"}', b'{"type":"exit","id":1,"exit_code":0}']),
     )
     server.json("GET", f"/sessions/{sid}", 200, make_session(id=sid))
 
@@ -425,9 +423,7 @@ async def test_async_run(async_client, server, make_session):
     server.register(
         "GET",
         f"/sessions/{sid}/stream",
-        _stream_responder(
-            [b'{"type":"start"}', b'{"type":"exit","id":1,"exit_code":0}']
-        ),
+        _stream_responder([b'{"type":"start"}', b'{"type":"exit","id":1,"exit_code":0}']),
     )
     server.json("GET", f"/sessions/{sid}", 200, make_session(id=sid, status="completed"))
 
@@ -553,9 +549,7 @@ async def test_async_wait_for_completion_supports_async_on_event(
     assert [e.type for e in result.events] == ["start", "exit"]
 
 
-async def test_async_wait_for_completion_collect_events_false(
-    async_client, server, make_session
-):
+async def test_async_wait_for_completion_collect_events_false(async_client, server, make_session):
     sid = str(uuid4())
     server.register(
         "GET",
@@ -569,8 +563,6 @@ async def test_async_wait_for_completion_collect_events_false(
 
     assert result.events == []
     assert result.session.id is not None
-
-
 
 
 def test_stream_resumable_yields_events(client, server):

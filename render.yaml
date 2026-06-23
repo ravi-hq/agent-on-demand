@@ -4,7 +4,7 @@ projects:
       - name: production
         databases:
           - name: agent-on-demand-db
-            plan: standard-1gb
+            plan: basic-1gb
             databaseName: agent_on_demand
             postgresMajorVersion: "16"
 
