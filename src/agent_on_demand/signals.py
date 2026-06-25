@@ -15,7 +15,6 @@ def delete_sprite_on_session_delete(sender, instance, **kwargs):
     if not handle:
         return
     session_service.destroy_session_task.defer(
-        user_id=instance.user_id,
         handle=handle,
         _otel_carrier=inject_carrier(),
     )

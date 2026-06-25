@@ -123,10 +123,10 @@ The worker started the turn but never finished. Usually the worker was killed mi
 
 Pattern: `session.provision_failed` PostHog events spiking, session status goes `pending → failed` with no `running` state in between.
 
-**Diagnose.** Honeycomb `aod-worker`, filter on `name = "session.provision_task"`, group by `aod.failure_stage`. The stage (`no_sprites_key`, `create_sprite`, `setup_env`, ...) tells you where it broke.
+**Diagnose.** Honeycomb `aod-worker`, filter on `name = "session.provision_task"`, group by `aod.failure_stage`. The stage (`no_backend_credentials`, `create_sprite`, `setup_env`, ...) tells you where it broke.
 
 **Fix by stage.**
-- `no_sprites_key` — the user doesn't have a Sprites key configured. Not an incident; individual user issue.
+- `no_backend_credentials` — the platform Sprites token (`SPRITES_API_KEY`) is unset or invalid on the worker. This is an incident: every session fails. Confirm the env var is set on both `web` and `worker` services and matches a valid Sprites token.
 - `create_sprite` — Sprites outage. Check Sprites status. Nothing to do service-side; wait.
 - `setup_env` / later stages — likely a bad `Environment` config from the user (invalid packages, setup script). Check `Environment.setup_script` for the affected users.
 - Spike across all users + all stages — something we shipped. Roll back.
@@ -235,7 +235,8 @@ Django sessions for the UI break; API bearer auth is unaffected (bearer tokens a
 ### Rotate `FIELD_ENCRYPTION_KEY`
 
 **Don't, without a plan.** This key encrypts:
-- `UserRuntimeKey.encrypted_key` (every user's Anthropic/OpenAI/Google/Sprites API key)
+- `UserCredential.value_encrypted` (every user's Anthropic/OpenAI/Google model API key)
+- `Environment.env_vars` (per-environment secrets)
 - `SessionResource.encrypted_token` (repo access tokens)
 
 Rotating invalidates all of the above. A rotation plan needs a dual-key read path first. If the key is leaked, the correct move is coordinated: notify users, have them re-enter keys after we deploy the new one.

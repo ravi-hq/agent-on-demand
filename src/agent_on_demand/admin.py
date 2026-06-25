@@ -12,7 +12,6 @@ from agent_on_demand.models import (
     AgentSessionLog,
     Environment,
     EnvironmentVersion,
-    UserBackendCredential,
     UserCredential,
     UserQuota,
 )
@@ -34,13 +33,6 @@ class UserCredentialInline(admin.TabularInline):
     readonly_fields = ("created_at", "updated_at")
 
 
-class UserBackendCredentialInline(admin.TabularInline):
-    model = UserBackendCredential
-    extra = 0
-    fields = ("backend", "created_at")
-    readonly_fields = ("created_at",)
-
-
 class UserQuotaInline(admin.StackedInline):
     model = UserQuota
     extra = 0
@@ -56,7 +48,6 @@ class UserAdmin(BaseUserAdmin):
     inlines = list(BaseUserAdmin.inlines) + [
         APIKeyInline,
         UserCredentialInline,
-        UserBackendCredentialInline,
         UserQuotaInline,
     ]
 
@@ -133,52 +124,6 @@ class UserCredentialAdmin(admin.ModelAdmin):
         return ("user", "kind", "value", "created_at", "updated_at")
 
 
-# Only "sprites" is wired today. ModalBackend lands in a follow-up plan and
-# adds itself here when it does.
-BACKEND_CHOICES = [("sprites", "sprites")]
-
-
-class UserBackendCredentialForm(forms.ModelForm):
-    backend = forms.ChoiceField(
-        choices=BACKEND_CHOICES,
-        help_text="Which session backend this credential targets.",
-    )
-    token = forms.CharField(
-        widget=forms.PasswordInput(render_value=True),
-        help_text="The backend API token. Stored encrypted.",
-    )
-
-    class Meta:
-        model = UserBackendCredential
-        fields = ("user", "backend", "token")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk:
-            self.fields["token"].initial = self.instance.get_token()
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.set_token(self.cleaned_data["token"])
-        if commit:
-            instance.save()
-        return instance
-
-
-@admin.register(UserBackendCredential)
-class UserBackendCredentialAdmin(admin.ModelAdmin):
-    form = UserBackendCredentialForm
-    list_display = ("user", "backend", "created_at")
-    list_filter = ("backend",)
-    search_fields = ("user__email", "backend")
-    readonly_fields = ("created_at",)
-
-    def get_fields(self, request, obj=None):
-        if obj is None:
-            return ("user", "backend", "token")
-        return ("user", "backend", "token", "created_at")
-
-
 class EnvironmentVersionInline(admin.TabularInline):
     model = EnvironmentVersion
     extra = 0
@@ -242,28 +187,16 @@ class AgentSessionAdmin(admin.ModelAdmin):
 
     @admin.action(description="Terminate selected sessions (destroy backend handles, keep records)")
     def terminate_sessions(self, request, queryset):
-        clients: dict[int, BackendClient | None] = {}
-
-        def client_for(user) -> BackendClient | None:
-            if user.pk in clients:
-                return clients[user.pk]
-            client = session_service.get_client(user)
-            clients[user.pk] = client
-            return client
+        client: BackendClient | None = session_service.get_client()
 
         terminated = 0
-        missing_key_users: set[str] = set()
         for session in queryset.exclude(status="terminated"):
             handle = session.backend_handle
-            if handle:
-                client = client_for(session.user)
-                if client is None:
-                    missing_key_users.add(str(session.user))
-                else:
-                    try:
-                        client.destroy(handle)
-                    except BackendError:
-                        pass
+            if handle and client is not None:
+                try:
+                    client.destroy(handle)
+                except BackendError:
+                    pass
             session.status = "terminated"
             session.backend_handle = ""
             session.save(update_fields=["status", "backend_handle", "updated_at"])
@@ -272,11 +205,8 @@ class AgentSessionAdmin(admin.ModelAdmin):
         msg = f"Terminated {terminated} session(s)."
         if skipped:
             msg += f" Skipped {skipped} already terminated."
-        if missing_key_users:
-            msg += (
-                f" Backend cleanup skipped for {len(missing_key_users)} user(s) "
-                f"with no backend credentials: {', '.join(sorted(missing_key_users))}."
-            )
+        if client is None:
+            msg += " Backend cleanup skipped — backend token is not configured."
             messages.warning(request, msg)
         else:
             messages.success(request, msg)

@@ -3,12 +3,7 @@ class SessionServiceError(Exception):
 
 
 class NoBackendCredentialsError(SessionServiceError):
-    """Caller has not configured credentials for the session backend."""
-
-
-# Back-compat alias. Kept for one release so any external imports of the
-# old name keep working; remove in the PR after this one ships.
-NoSpritesKeyError = NoBackendCredentialsError
+    """The platform backend token (`settings.SPRITES_API_KEY`) is not configured."""
 
 
 class ProvisionError(SessionServiceError):

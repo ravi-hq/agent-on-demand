@@ -1,6 +1,6 @@
 import logging
 
-from agent_on_demand.models import UserBackendCredential
+from django.conf import settings
 
 from .backends import BackendClient, BackendError, get_backend
 from .errors import NoBackendCredentialsError
@@ -8,35 +8,31 @@ from .errors import NoBackendCredentialsError
 logger = logging.getLogger(__name__)
 
 
-def _lookup_token(user, backend: str) -> str | None:
-    try:
-        cred = UserBackendCredential.objects.get(user=user, backend=backend)
-    except UserBackendCredential.DoesNotExist:
-        return None
-    return cred.get_token()
+def get_client(backend: str = "sprites") -> BackendClient | None:
+    """Build a backend client from the platform's configured token.
 
+    The backend token (`settings.SPRITES_API_KEY`) is a single platform-owned
+    secret shared by every session — there is no per-user token. Returns None
+    when it is unset, which is a deploy misconfiguration that callers surface
+    as a 503 rather than a per-user error.
 
-def get_client(user, backend: str = "sprites") -> BackendClient | None:
-    """Build a backend client from the caller's stored token.
-
-    Returns None when the user has no token configured for `backend`.
     Raises `NoBackendCredentialsError` if `backend` is not a registered
-    backend — that's a programmer error, not a credential gap.
+    backend — that's a programmer error, not a missing-token gap.
     """
     try:
         impl = get_backend(backend)
     except KeyError as e:
         raise NoBackendCredentialsError(str(e)) from e
-    token = _lookup_token(user, backend)
-    if token is None:
+    token = settings.SPRITES_API_KEY
+    if not token:
         return None
     return impl.create_client(token)
 
 
-def require_client(user, backend: str = "sprites") -> BackendClient:
-    client = get_client(user, backend)
+def require_client(backend: str = "sprites") -> BackendClient:
+    client = get_client(backend)
     if client is None:
-        raise NoBackendCredentialsError("No backend credentials configured")
+        raise NoBackendCredentialsError("Session backend token is not configured")
     return client
 
 

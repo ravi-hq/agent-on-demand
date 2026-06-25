@@ -3,13 +3,6 @@
 {% block content %}
   <h1>Dashboard</h1>
 
-  {% if not has_sprites_key %}
-    <div class="warn">
-      You don't have a Sprites API token set yet. Session creation will fail until
-      you <a href="{% url 'ui-sprites-key' %}">add one</a>.
-    </div>
-  {% endif %}
-
   <section class="counts">
     <div class="card">
       <div class="n">{{ counts.agents }}</div>

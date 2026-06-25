@@ -12,7 +12,6 @@ from agent_on_demand.models import (
     APIKey,
     Environment,
     EnvironmentVersion,
-    UserBackendCredential,
     UserCredential,
 )
 
@@ -38,11 +37,8 @@ def auth_headers(api_key):
 
 
 @pytest.fixture
-def sprites_key(user):
-    cred = UserBackendCredential(user=user, backend="sprites")
-    cred.set_token("fake-sprites-token")
-    cred.save()
-    return cred
+def sprites_key(settings):
+    settings.SPRITES_API_KEY = "fake-sprites-token"
 
 
 @pytest.fixture

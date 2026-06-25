@@ -1,6 +1,6 @@
 """Unit tests for the session_service package.
 
-These tests call `provision_session(user, spec)` directly with a RecordingSprites
+These tests call `provision_session(spec)` directly with a RecordingSprites
 fake and assert on the recorded command/write sequence — complementing the
 HTTP-layer integration tests that drive the same code path from the outside.
 """
@@ -15,7 +15,6 @@ from agent_on_demand.models import (
     AgentSession,
     AgentSessionLog,
     Environment,
-    UserBackendCredential,
     UserCredential,
 )
 from agent_on_demand.runtimes import RUNTIMES
@@ -28,11 +27,9 @@ from agent_on_demand.session_service.specs import SkillSpec
 
 
 @pytest.fixture
-def user(db):
+def user(db, settings):
+    settings.SPRITES_API_KEY = "fake-sprites-token"
     u = User.objects.create_user(username="svc", password="p")
-    bcred = UserBackendCredential(user=u, backend="sprites")
-    bcred.set_token("fake-sprites-token")
-    bcred.save()
     cred = UserCredential(user=u, kind="provider:anthropic")
     cred.set_value("sk-xxx")
     cred.save()
@@ -57,7 +54,7 @@ def _spec(user, **overrides) -> SessionSpec:
 
 class TestProvisionSessionOrder:
     def test_env_file_chmod_is_in_provision_script(self, user, fake_sprites):
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         sprite = fake_sprites.last_sprite()
         script = sprite.write_map()["/tmp/aod-provision.sh"]
         assert "chmod 600 /tmp/aod-env" in script
@@ -83,7 +80,6 @@ class TestProvisionSessionOrder:
 
         mcp_servers = [McpServerSpec(name="srv", type="url", url="https://example.com/mcp")]
         provision_session(
-            user,
             _spec(user, runtime=RUNTIMES[runtime_name], mcp_servers=mcp_servers),
         )
         script = fake_sprites.last_sprite().write_map()["/tmp/aod-provision.sh"]
@@ -93,12 +89,12 @@ class TestProvisionSessionOrder:
         """Without MCP servers, the runtime-specific config dirs are not
         created — the mkdir line is only emitted for post-script writes that
         actually need the parent dir to exist."""
-        provision_session(user, _spec(user, runtime=RUNTIMES["codex"]))
+        provision_session(_spec(user, runtime=RUNTIMES["codex"]))
         script = fake_sprites.last_sprite().write_map()["/tmp/aod-provision.sh"]
         assert "/home/sprite/.codex" not in script
 
     def test_provisioning_issues_install_then_provision_script(self, user, fake_sprites):
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         sprite = fake_sprites.last_sprite()
         # Two sprite.command invocations during provisioning, in order:
         # ClaudeRuntime.install runs `claude update` to upgrade past the
@@ -111,7 +107,7 @@ class TestProvisionSessionOrder:
         ]
 
     def test_env_file_contains_credential_and_session_id(self, user, fake_sprites):
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         env_file = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         # Credentials come from UserCredential rows for this user.
         assert "ANTHROPIC_API_KEY=sk-xxx" in env_file
@@ -123,7 +119,7 @@ class TestProvisionSessionOrder:
         oauth = UserCredential(user=user, kind="runtime_token:claude-oauth")
         oauth.set_value("oauth-token")
         oauth.save()
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         env_file = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         assert "ANTHROPIC_API_KEY=sk-xxx" in env_file
         assert "CLAUDE_CODE_OAUTH_TOKEN=oauth-token" in env_file
@@ -138,7 +134,7 @@ class TestProvisionSessionOrder:
             env_vars={"ANTHROPIC_API_KEY": "env-override"},
             version=1,
         )
-        provision_session(user, _spec(user, environment=env))
+        provision_session(_spec(user, environment=env))
         body = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         lines = body.strip().split("\n")
         cred_idx = next(
@@ -152,7 +148,7 @@ class TestProvisionSessionOrder:
     def test_no_run_agent_script_is_written(self, user, fake_sprites):
         """The per-turn runtime-CLI invocation is assembled inline in the
         worker task; nothing is written to /run-agent.sh."""
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         writes = fake_sprites.last_sprite().writes
         assert all(w.path != "/run-agent.sh" for w in writes)
 
@@ -163,7 +159,7 @@ class TestProvisionSessionFailureHandling:
     ):
         fake_sprites.raise_on_create(SpriteError("boom"))
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user))
+            provision_session(_spec(user))
         assert ei.value.stage == "create_sprite"
         assert fake_sprites.deleted == []
 
@@ -186,7 +182,7 @@ class TestProvisionSessionFailureHandling:
         mocker.patch.object(fake_sprites, "create_sprite", side_effect=wrapped)
 
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, environment=env))
+            provision_session(_spec(user, environment=env))
         assert ei.value.stage == "provision_setup"
         assert fake_sprites.deleted == ["sprite-x"]
 
@@ -200,7 +196,7 @@ class TestProvisionSessionFailureHandling:
         opencode = RUNTIMES["opencode"]
         mocker.patch.object(opencode, "install", side_effect=SpriteError("npm boom"))
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, runtime=opencode))
+            provision_session(_spec(user, runtime=opencode))
         assert ei.value.stage == "install_runtime"
         # Sprite was created, then deleted as best-effort cleanup.
         assert fake_sprites.deleted == ["sprite-x"]
@@ -227,7 +223,7 @@ class TestProvisionSessionFailureHandling:
         fake_sprites.create_sprite = wrapped  # patch directly, no mocker needed
 
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, environment=env))
+            provision_session(_spec(user, environment=env))
         assert ei.value.stage == "network_policy"
 
     def test_write_env_file_sprite_error_tags_stage(self, user, fake_sprites):
@@ -245,7 +241,7 @@ class TestProvisionSessionFailureHandling:
         fake_sprites.create_sprite = wrapped
 
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user))
+            provision_session(_spec(user))
         assert ei.value.stage == "env_file"
         assert fake_sprites.deleted == ["sprite-x"]
 
@@ -273,7 +269,7 @@ class TestProvisionSessionFailureHandling:
             )
         ]
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, repos=repos))
+            provision_session(_spec(user, repos=repos))
         assert ei.value.stage == "git_credentials"
         assert fake_sprites.deleted == ["sprite-x"]
 
@@ -291,7 +287,7 @@ class TestProvisionSessionFailureHandling:
         mocker.patch.object(orchestrator, "install_runtime", side_effect=SpriteError("unwrapped"))
 
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user))
+            provision_session(_spec(user))
         assert ei.value.stage == "unknown"
         assert "Failed to prepare Sprite: unwrapped" in str(ei.value)
         # The orphaned Sprite must be cleaned up — without that, every
@@ -324,7 +320,7 @@ class TestProvisionSessionFailureHandling:
         mocker.patch.object(fake_sprites, "create_sprite", side_effect=wrapped)
 
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user))
+            provision_session(_spec(user))
         assert ei.value.stage == "provision_setup"
         # Both the SpriteError message and the captured stderr tail must
         # appear in the detail — operators rely on the stderr to triage.
@@ -351,7 +347,7 @@ class TestProvisionSessionFailureHandling:
 
         mcp_servers = [McpServerSpec(name="srv", type="url", url="https://example.com/mcp")]
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, mcp_servers=mcp_servers))
+            provision_session(_spec(user, mcp_servers=mcp_servers))
         assert ei.value.stage == "runtime_config"
         assert fake_sprites.deleted == ["sprite-x"]
 
@@ -371,7 +367,7 @@ class TestProvisionSessionFailureHandling:
 
         skill = SkillSpec(name="inline-skill", content="---\nname: inline-skill\n---\n")
         with pytest.raises(ProvisionError) as ei:
-            provision_session(user, _spec(user, skills=[skill]))
+            provision_session(_spec(user, skills=[skill]))
         assert ei.value.stage == "skills"
         assert fake_sprites.deleted == ["sprite-x"]
 
@@ -387,13 +383,13 @@ class TestDestroyAndResumeSession:
         for a non-existent Sprite and inflate Sprites-API error rates."""
         from agent_on_demand.session_service.provisioning import destroy_session
 
-        destroy_session(user, "")
+        destroy_session("")
         assert fake_sprites.deleted == []
 
     def test_destroy_session_no_client_logs_and_returns(self, user, mocker, caplog):
-        """When the user has no Sprites key at delete time, destroy_session
-        must log + return rather than raising — otherwise a key-rotation
-        race would crash the cleanup task."""
+        """When the platform token is unset at delete time, destroy_session
+        must log + return rather than raising — otherwise a misconfigured
+        deploy would crash the cleanup task."""
         import logging
 
         from agent_on_demand.session_service.provisioning import destroy_session
@@ -401,8 +397,8 @@ class TestDestroyAndResumeSession:
         mocker.patch("agent_on_demand.session_service.client.get_client", return_value=None)
         mocker.patch("agent_on_demand.session_service.get_client", return_value=None)
         with caplog.at_level(logging.WARNING):
-            destroy_session(user, "aod-orphan")
-        assert any("no backend credentials" in r.message for r in caplog.records)
+            destroy_session("aod-orphan")
+        assert any("backend token is not configured" in r.message for r in caplog.records)
 
     def test_resume_session_wraps_sprite_error_in_session_handle_not_found(
         self, user, fake_sprites, mocker
@@ -415,7 +411,7 @@ class TestDestroyAndResumeSession:
 
         mocker.patch.object(fake_sprites, "get_sprite", side_effect=SpriteError("gone"))
         with pytest.raises(SessionHandleNotFound):
-            resume_session(user, "aod-gone")
+            resume_session("aod-gone")
 
 
 class TestProvisionStageEvents:
@@ -431,7 +427,7 @@ class TestProvisionStageEvents:
 
     def test_minimal_spec_emits_expected_stages(self, user, fake_sprites):
         session = self._make_session(user)
-        provision_session(user, _spec(user), session_id=str(session.id))
+        provision_session(_spec(user), session_id=str(session.id))
         events = list(
             AgentSessionLog.objects.filter(session=session, kind="stage")
             .order_by("id")
@@ -455,7 +451,7 @@ class TestProvisionStageEvents:
 
     def test_done_events_carry_duration_ms(self, user, fake_sprites):
         session = self._make_session(user)
-        provision_session(user, _spec(user), session_id=str(session.id))
+        provision_session(_spec(user), session_id=str(session.id))
         done = AgentSessionLog.objects.filter(session=session, kind="stage", state="done").first()
         assert done.duration_ms is not None and done.duration_ms >= 0
 
@@ -463,7 +459,7 @@ class TestProvisionStageEvents:
         session = self._make_session(user)
         fake_sprites.raise_on_create(SpriteError("boom"))
         with pytest.raises(ProvisionError):
-            provision_session(user, _spec(user), session_id=str(session.id))
+            provision_session(_spec(user), session_id=str(session.id))
         events = list(
             AgentSessionLog.objects.filter(session=session, kind="stage")
             .order_by("id")
@@ -476,7 +472,7 @@ class TestProvisionStageEvents:
 
     def test_no_session_id_emits_no_rows(self, user, fake_sprites):
         """Backwards-compat path: tests that don't pass session_id emit nothing."""
-        provision_session(user, _spec(user))
+        provision_session(_spec(user))
         assert AgentSessionLog.objects.count() == 0
 
 
@@ -488,7 +484,7 @@ class TestProvisionSessionEnvFileShape:
             env_vars={"B_SECOND": "two", "A_FIRST": "one with space"},
             version=1,
         )
-        provision_session(user, _spec(user, environment=env))
+        provision_session(_spec(user, environment=env))
         body = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         lines = body.strip().split("\n")
         # Credentials are dumped first (order depends on DB row id; one
@@ -517,7 +513,7 @@ class TestProvisionSkills:
             user,
             skills=[SkillSpec(name="inline-skill", content=self.SAMPLE_CONTENT)],
         )
-        provision_session(user, spec)
+        provision_session(spec)
         writes = fake_sprites.last_sprite().write_map()
         assert writes["/home/sprite/.claude/skills/inline-skill/SKILL.md"] == self.SAMPLE_CONTENT
 
@@ -526,7 +522,7 @@ class TestProvisionSkills:
             user,
             skills=[SkillSpec(name="aod-sdk-python", source="ravi-hq/agent-on-demand")],
         )
-        provision_session(user, spec)
+        provision_session(spec)
         shell_lines = fake_sprites.last_sprite().shell_strings()
         # When a name is provided we MUST pass --skill so only that one
         # SKILL.md from the repo is installed (not every skill in the repo).
@@ -543,7 +539,7 @@ class TestProvisionSkills:
             user,
             skills=[SkillSpec(source="ravi-hq/agent-on-demand")],
         )
-        provision_session(user, spec)
+        provision_session(spec)
         shell_lines = fake_sprites.last_sprite().shell_strings()
         install_lines = [line for line in shell_lines if "npx -y skills@latest add" in line]
         assert len(install_lines) == 1, install_lines
@@ -588,7 +584,7 @@ class TestProvisionSkills:
             user,
             skills=[SkillSpec(name="aod", source="ravi-hq/agent-on-demand")],
         )
-        provision_session(user, spec)
+        provision_session(spec)
         for line in fake_sprites.last_sprite().shell_strings():
             assert "`" not in line
             assert "$(" not in line
@@ -601,7 +597,7 @@ class TestProvisionSkills:
                 SkillSpec(name="from-gh", source="ravi-hq/agent-on-demand"),
             ],
         )
-        provision_session(user, spec)
+        provision_session(spec)
         sprite = fake_sprites.last_sprite()
         assert (
             sprite.write_map()["/home/sprite/.claude/skills/inline-skill/SKILL.md"]
@@ -613,6 +609,6 @@ class TestProvisionSkills:
         )
 
     def test_no_skills_no_install_command(self, user, fake_sprites):
-        provision_session(user, _spec(user, skills=[]))
+        provision_session(_spec(user, skills=[]))
         shell_lines = fake_sprites.last_sprite().shell_strings()
         assert not any("npx -y skills@latest add" in line for line in shell_lines)

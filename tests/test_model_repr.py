@@ -138,13 +138,14 @@ def test_api_key_str_uses_prefix_and_name(user):
 # --- session_service.client.require_client raises when no key configured ---
 
 
-@pytest.mark.django_db
-def test_require_client_raises_when_no_backend_credential(user):
+def test_require_client_raises_when_backend_token_unset(settings):
     """The session-creation hot path uses get_client; a few infrequent code
-    paths use require_client which surfaces NoBackendCredentialsError. Pin
-    the raise so a refactor that returned None-or-default can't slip past."""
+    paths use require_client which surfaces NoBackendCredentialsError when the
+    platform token is unset. Pin the raise so a refactor that returned
+    None-or-default can't slip past."""
     from agent_on_demand.session_service.client import require_client
     from agent_on_demand.session_service.errors import NoBackendCredentialsError
 
+    settings.SPRITES_API_KEY = None
     with pytest.raises(NoBackendCredentialsError):
-        require_client(user)
+        require_client()

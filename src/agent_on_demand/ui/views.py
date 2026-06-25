@@ -12,9 +12,8 @@ from agent_on_demand.models import (
     AgentSessionLog,
     APIKey,
     Environment,
-    UserBackendCredential,
 )
-from agent_on_demand.ui.forms import APIKeyCreateForm, RegisterForm, SpritesKeyForm
+from agent_on_demand.ui.forms import APIKeyCreateForm, RegisterForm
 
 
 def landing(request):
@@ -29,10 +28,6 @@ def register(request):
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
-
-            cred = UserBackendCredential(user=user, backend="sprites")
-            cred.set_token(form.cleaned_data["sprites_api_key"])
-            cred.save()
 
             _, raw_key = APIKey.create_key(user=user, name="Onboarding key")
 
@@ -64,9 +59,6 @@ def welcome(request):
 
 @login_required(login_url="/ui/login")
 def dashboard(request):
-    has_sprites_key = UserBackendCredential.objects.filter(
-        user=request.user, backend="sprites"
-    ).exists()
     counts = {
         "agents": Agent.objects.filter(user=request.user, archived_at__isnull=True).count(),
         "environments": Environment.objects.filter(
@@ -75,33 +67,7 @@ def dashboard(request):
         "sessions": AgentSession.objects.filter(user=request.user).count(),
         "api_keys": APIKey.objects.filter(user=request.user, is_active=True).count(),
     }
-    return render(
-        request,
-        "ui/dashboard.html",
-        {"has_sprites_key": has_sprites_key, "counts": counts},
-    )
-
-
-@login_required(login_url="/ui/login")
-def sprites_key(request):
-    existing = UserBackendCredential.objects.filter(user=request.user, backend="sprites").first()
-
-    if request.method == "POST":
-        form = SpritesKeyForm(request.POST)
-        if form.is_valid():
-            cred = existing or UserBackendCredential(user=request.user, backend="sprites")
-            cred.set_token(form.cleaned_data["api_key"])
-            cred.save()
-            messages.success(request, "Sprites token saved.")
-            return redirect("ui-sprites-key")
-    else:
-        form = SpritesKeyForm()
-
-    return render(
-        request,
-        "ui/sprites_key.html",
-        {"form": form, "has_existing": existing is not None},
-    )
+    return render(request, "ui/dashboard.html", {"counts": counts})
 
 
 @login_required(login_url="/ui/login")
