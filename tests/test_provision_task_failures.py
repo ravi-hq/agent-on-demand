@@ -28,7 +28,6 @@ from agent_on_demand.models import (
     AgentSessionLog,
     APIKey,
     SessionTurn,
-    UserBackendCredential,
     UserCredential,
 )
 from agent_on_demand.session_service.errors import NoBackendCredentialsError
@@ -43,12 +42,10 @@ def _stub_close_old_connections(mocker):
 
 
 @pytest.fixture
-def user(db):
+def user(db, settings):
+    settings.SPRITES_API_KEY = "fake-sprites"
     u = User.objects.create_user(username="provtest", password="x")
     APIKey.create_key(u, "k")
-    bcred = UserBackendCredential(user=u, backend="sprites")
-    bcred.set_token("fake-sprites")
-    bcred.save()
     cred = UserCredential(user=u, kind="provider:anthropic")
     cred.set_value("fake")
     cred.save()
@@ -136,8 +133,8 @@ def test_provision_task_marks_failed_on_unexpected_error(user, mocker):
 
 @pytest.mark.django_db
 def test_provision_task_marks_failed_on_no_backend_credential(user, mocker):
-    """Race: backend credential revoked between session-create (which passed
-    the pre-check) and provision-task pickup. The task must record
+    """If the platform backend token is unavailable by the time the provision
+    task picks up (e.g. a misconfigured worker), the task must record
     failed-stage='no_backend_credentials' and mark provision failed."""
     session, turn = _make_session_and_turn(user)
     # provision_session is the call inside the spanned try-block. Force it

@@ -193,15 +193,7 @@ def test_destroy_session_round_trip_through_fake_backend(fake_backend):
     runtime-touching stages still expect the legacy sprite SDK shape
     (PR 3 will port them); this round-trip pins the parts of the
     Protocol that PR 2 already drives end-to-end."""
-    from django.contrib.auth.models import User
-
-    from agent_on_demand.models import UserBackendCredential
     from agent_on_demand.session_service.provisioning import destroy_session
 
-    user = User.objects.create_user(username="bk-rt", password="p")
-    cred = UserBackendCredential(user=user, backend="sprites")
-    cred.set_token("token")
-    cred.save()
-
-    destroy_session(user, "session-xyz")
+    destroy_session("session-xyz")
     assert fake_backend.deleted == ["session-xyz"]

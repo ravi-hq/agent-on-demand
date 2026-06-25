@@ -54,20 +54,13 @@ def test_registry_is_singleton_across_calls():
 # ---------- get_client routes through the registry ----------
 
 
-@pytest.mark.django_db
-def test_get_client_routes_through_registry(mocker):
-    """`get_client(user, backend=...)` resolves the Backend via
-    `get_backend(...)`. Pin so a future refactor that hard-codes
-    `SpritesBackend()` is caught."""
-    from django.contrib.auth.models import User
-
-    from agent_on_demand.models import UserBackendCredential
+def test_get_client_routes_through_registry(settings, mocker):
+    """`get_client(backend=...)` resolves the Backend via `get_backend(...)`
+    and constructs the client with the platform token. Pin so a future
+    refactor that hard-codes `SpritesBackend()` is caught."""
     from agent_on_demand.session_service.client import get_client
 
-    user = User.objects.create_user(username="be-sel", password="x")
-    cred = UserBackendCredential(user=user, backend="sprites")
-    cred.set_token("fake-token")
-    cred.save()
+    settings.SPRITES_API_KEY = "fake-token"
 
     fake_backend = mocker.MagicMock()
     fake_backend.create_client.return_value = mocker.sentinel.client
@@ -76,24 +69,29 @@ def test_get_client_routes_through_registry(mocker):
         return_value=fake_backend,
     )
 
-    assert get_client(user, backend="sprites") is mocker.sentinel.client
+    assert get_client(backend="sprites") is mocker.sentinel.client
     fake_backend.create_client.assert_called_once_with("fake-token")
 
 
-def test_get_client_default_backend_is_sprites(mocker):
-    """Calling `get_client(user)` without an explicit backend uses
-    `"sprites"` — preserves backward compatibility with callers added
-    before PR 6."""
+def test_get_client_default_backend_is_sprites(settings, mocker):
+    """Calling `get_client()` without an explicit backend uses `"sprites"`."""
     from agent_on_demand.session_service import client as client_module
 
-    user = mocker.MagicMock()
+    settings.SPRITES_API_KEY = "fake-token"
     fake = mocker.MagicMock()
     get_backend_mock = mocker.patch.object(client_module, "get_backend", return_value=fake)
-    # PR 8 introduced `_lookup_token` which hits the ORM. Stub it so this
-    # test stays focused on the dispatch — the credential paths are
-    # exercised in `tests/test_user_backend_credential.py`.
-    mocker.patch.object(client_module, "_lookup_token", return_value=None)
 
-    client_module.get_client(user)
+    client_module.get_client()
 
     get_backend_mock.assert_called_once_with("sprites")
+
+
+def test_get_client_unknown_backend_raises(settings):
+    """An unregistered backend is a programmer error — `get_client` wraps the
+    registry `KeyError` as `NoBackendCredentialsError` rather than leaking it."""
+    from agent_on_demand.session_service.client import get_client
+    from agent_on_demand.session_service.errors import NoBackendCredentialsError
+
+    settings.SPRITES_API_KEY = "fake-token"
+    with pytest.raises(NoBackendCredentialsError):
+        get_client(backend="modal")

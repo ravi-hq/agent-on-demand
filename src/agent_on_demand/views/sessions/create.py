@@ -115,10 +115,11 @@ def _create_session(request):
             status=422,
         )
 
-    # Sync pre-check so missing backend creds return 400 immediately rather
-    # than surfacing as a failed session the client has to poll for.
-    if session_service.get_client(request.user) is None:
-        return JsonResponse({"detail": "No backend credentials configured"}, status=400)
+    # Sync pre-check so a misconfigured deploy (missing platform backend token)
+    # returns 503 immediately rather than surfacing as a failed session the
+    # client has to poll for.
+    if session_service.get_client() is None:
+        return JsonResponse({"detail": "Session backend is not configured"}, status=503)
 
     name = f"{settings.SPRITE_NAME_PREFIX}-{uuid.uuid4().hex[:12]}"
     runtime_session_id = str(uuid.uuid4())

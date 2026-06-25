@@ -61,9 +61,9 @@ def send_prompt(request, session_id):
         return err
 
     try:
-        session_service.resume_session(request.user, session.backend_handle)
+        session_service.resume_session(session.backend_handle)
     except session_service.NoBackendCredentialsError as e:
-        return JsonResponse({"detail": str(e)}, status=400)
+        return JsonResponse({"detail": str(e)}, status=503)
     except session_service.SessionHandleNotFound:
         # The backend handle is gone (e.g. idle timeout on the underlying
         # platform). The session record still exists, so 404 would be
@@ -165,7 +165,6 @@ def terminate_session(request, session_id):
 
     if handle:
         session_service.destroy_session_task.defer(
-            user_id=request.user.id,
             handle=handle,
             _otel_carrier=inject_carrier(),
         )

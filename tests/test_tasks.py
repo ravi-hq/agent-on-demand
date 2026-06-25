@@ -22,7 +22,6 @@ from agent_on_demand.models import (
     AgentSessionLog,
     APIKey,
     SessionTurn,
-    UserBackendCredential,
     UserCredential,
 )
 from agent_on_demand.session_service.log_sink import LogChunkSink, TaggingQueueWriter
@@ -48,12 +47,10 @@ def mock_close_old_connections(mocker):
 
 
 @pytest.fixture
-def user(db):
+def user(db, settings):
+    settings.SPRITES_API_KEY = "fake-sprites-token"
     u = User.objects.create_user(username="testuser", password="testpass")
     APIKey.create_key(u, "test-key")
-    bcred = UserBackendCredential(user=u, backend="sprites")
-    bcred.set_token("fake-sprites-token")
-    bcred.save()
     return u
 
 
@@ -390,12 +387,10 @@ def test_execute_turn_wires_runtime_trace_emitter_with_runtime_name(user, mocker
 
 
 @pytest.fixture
-def provision_user(db):
+def provision_user(db, settings):
+    settings.SPRITES_API_KEY = "fake-sprites-token"
     u = User.objects.create_user(username="prov", password="p")
     APIKey.create_key(u, "test-key")
-    bcred = UserBackendCredential(user=u, backend="sprites")
-    bcred.set_token("fake-sprites-token")
-    bcred.save()
     cred = UserCredential(user=u, kind="provider:anthropic")
     cred.set_value("fake-anthropic-key")
     cred.save()
@@ -611,16 +606,8 @@ def test_provision_task_runs_with_no_runtime_credential(provision_user, fake_spr
 
 @pytest.mark.django_db
 def test_destroy_task_deletes_sprite(provision_user, fake_sprites):
-    destroy_session_task(user_id=provision_user.id, handle="aod-xyz")
+    destroy_session_task(handle="aod-xyz")
     assert fake_sprites.deleted == ["aod-xyz"]
-
-
-@pytest.mark.django_db
-def test_destroy_task_noop_when_user_gone(fake_sprites):
-    """If the user row is gone by the time the worker picks up, skip
-    cleanup rather than raise. The Sprite will time out server-side."""
-    destroy_session_task(user_id=999_999, handle="aod-xyz")
-    assert fake_sprites.deleted == []
 
 
 @pytest.mark.django_db
@@ -629,7 +616,7 @@ def test_destroy_task_swallows_sprite_errors(provision_user, fake_sprites, mocke
     logged, not raised. Re-raising would let Procrastinate keep retrying a
     call that might never succeed."""
     mocker.patch.object(fake_sprites, "delete_sprite", side_effect=SpriteError("transient"))
-    destroy_session_task(user_id=provision_user.id, handle="aod-xyz")
+    destroy_session_task(handle="aod-xyz")
     # Assertion is "no exception raised".
 
 

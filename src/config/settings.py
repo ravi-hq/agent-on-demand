@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-key-change-in-prod")
 
-# Dedicated KEK for encrypted model fields (UserBackendCredential, UserCredential). Split
+# Dedicated KEK for encrypted model fields (UserCredential, Environment env_vars). Split
 # from SECRET_KEY so session-signing keys can be rotated independently of the
 # field-encryption key. Rotating this key still requires a re-encrypt migration.
 FIELD_ENCRYPTION_KEY = os.environ.get("FIELD_ENCRYPTION_KEY")
@@ -111,15 +111,19 @@ LOGIN_URL = "/ui/login"
 LOGIN_REDIRECT_URL = "/ui/"
 LOGOUT_REDIRECT_URL = "/ui/login"
 
-# Sprites config
+# Sprites config. SPRITES_API_KEY is the single platform-owned token every
+# session runs under — there is no bring-your-own-key path. A correctly
+# provisioned deploy always sets it (see render.yaml); when it is unset,
+# session creation returns 503.
 SPRITES_BASE_URL = os.environ.get("SPRITES_BASE_URL", "https://api.sprites.dev")
+SPRITES_API_KEY = os.environ.get("SPRITES_API_KEY")
 SPRITE_NAME_PREFIX = os.environ.get("SPRITE_NAME_PREFIX", "aod")
 DEFAULT_TIMEOUT = int(os.environ.get("DEFAULT_TIMEOUT", "600"))
 
 # Per-user cap on concurrent (pending + running) sessions. Users can be granted
 # a higher (or lower) limit via UserQuota.max_concurrent_sessions. Sprites cost
-# is borne by the user (own token), so this cap protects our worker queue from
-# a single user saturating it, not our spend.
+# is borne by the platform (shared token), so this cap protects both our worker
+# queue and our spend from a single user saturating them.
 DEFAULT_MAX_CONCURRENT_SESSIONS = int(os.environ.get("DEFAULT_MAX_CONCURRENT_SESSIONS", "100"))
 
 # Defaults for `manage.py lintmigrations`. The Makefile's `check-migrations`

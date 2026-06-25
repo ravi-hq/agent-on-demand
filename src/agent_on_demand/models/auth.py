@@ -86,31 +86,3 @@ class UserCredential(models.Model):
             return cls.objects.get(user=user, kind=kind).get_value()
         except cls.DoesNotExist:
             return None
-
-
-class UserBackendCredential(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="backend_credentials",
-    )
-    backend = models.CharField(max_length=32)
-    encrypted_token = models.BinaryField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = "user_backend_credentials"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "backend"], name="unique_user_backend_credential"
-            ),
-        ]
-
-    def __str__(self):
-        return f"{self.user} — {self.backend}"
-
-    def set_token(self, raw_token: str):
-        self.encrypted_token = encrypt(raw_token)
-
-    def get_token(self) -> str:
-        return decrypt(bytes(self.encrypted_token))

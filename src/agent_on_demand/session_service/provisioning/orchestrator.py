@@ -50,7 +50,7 @@ from .stages import (
 logger = logging.getLogger(__name__)
 
 
-def provision_session(user, spec: SessionSpec, session_id: str | None = None) -> SessionHandle:
+def provision_session(spec: SessionSpec, session_id: str | None = None) -> SessionHandle:
     """Create a session handle on the backend and run all setup stages against it.
 
     On any failure the handle is best-effort destroyed before a `ProvisionError`
@@ -73,7 +73,7 @@ def provision_session(user, spec: SessionSpec, session_id: str | None = None) ->
             "aod.has_setup_script": bool((env.setup_script or "").strip()) if env else False,
         },
     ) as span:
-        client = require_client(user, spec.backend)
+        client = require_client(spec.backend)
         try:
             with stage_timer(session_id, STAGE_CREATE_SPRITE):
                 try:
@@ -106,25 +106,25 @@ def provision_session(user, spec: SessionSpec, session_id: str | None = None) ->
         return handle
 
 
-def resume_session(user, handle: str) -> SessionHandle:
+def resume_session(handle: str) -> SessionHandle:
     """Look up the backend handle backing an existing session."""
     from agent_on_demand.session_service.errors import SessionHandleNotFound
 
-    client = require_client(user)
+    client = require_client()
     try:
         return client.get(handle)
     except BackendError as e:
         raise SessionHandleNotFound(f"Sprite not found: {e}") from e
 
 
-def destroy_session(user, handle: str) -> None:
+def destroy_session(handle: str) -> None:
     """Destroy the backend session. Best-effort — logs on failure but never raises."""
     if not handle:
         return
     from agent_on_demand.session_service.client import get_client
 
-    client = get_client(user)
+    client = get_client()
     if client is None:
-        logger.warning("Cannot delete handle %s: no backend credentials for user %s", handle, user)
+        logger.warning("Cannot delete handle %s: backend token is not configured", handle)
         return
     best_effort_delete(client, handle)

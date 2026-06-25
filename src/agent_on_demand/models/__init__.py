@@ -1,7 +1,6 @@
 from agent_on_demand.models.agents import Agent, AgentVersion
 from agent_on_demand.models.auth import (
     APIKey,
-    UserBackendCredential,
     UserCredential,
 )
 from agent_on_demand.models.environments import Environment, EnvironmentVersion
@@ -23,7 +22,6 @@ __all__ = [
     "EnvironmentVersion",
     "SessionResource",
     "SessionTurn",
-    "UserBackendCredential",
     "UserQuota",
     "UserCredential",
 ]

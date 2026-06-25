@@ -29,7 +29,6 @@ from __future__ import annotations
 import logging
 
 import posthog
-from django.contrib.auth import get_user_model
 from django.db import close_old_connections
 from django.utils import timezone
 from procrastinate.contrib.django import app as procrastinate_app
@@ -129,7 +128,7 @@ def _provision_session_inner(
         },
     ) as span:
         try:
-            provision_session(session.user, spec, session_id=session_id)
+            provision_session(spec, session_id=session_id)
         except NoBackendCredentialsError as e:
             span.set_attribute("aod.failure_stage", "no_backend_credentials")
             _mark_provision_failed(session, turn_id, str(e))
@@ -288,7 +287,7 @@ def _execute_turn_inner(
         },
     ) as span:
         try:
-            handle = resume_session(session.user, session.backend_handle)
+            handle = resume_session(session.backend_handle)
         except SessionHandleNotFound as e:
             logger.warning("sprite not found for session %s turn %s: %s", session_id, turn_id, e)
             span.set_attribute("aod.failure_stage", "sprite_not_found")
@@ -300,31 +299,19 @@ def _execute_turn_inner(
 # Decorator order + `_otel_carrier`: see note on `provision_session_task` above.
 @procrastinate_app.task(queue="sessions", name="destroy_session", pass_context=False)
 @traced_task("destroy_session")
-def destroy_session_task(*, user_id: int, handle: str, _otel_carrier: dict | None = None) -> None:
+def destroy_session_task(*, handle: str, _otel_carrier: dict | None = None) -> None:
     """Delete a backend session on the worker. Best-effort — failures are
     logged, not retried, matching the pre-existing `destroy_session` contract.
 
-    User resolution lives inside the task (rather than the view passing a
-    client/token) so there's nothing sensitive on the Procrastinate queue.
-    If the user row is gone by the time the worker picks up, we skip
-    cleanup — the backend resource will eventually time out server-side.
+    The backend token is platform-owned, so cleanup runs regardless of whether
+    the originating user still exists — an orphaned Sprite costs us money until
+    it times out server-side, so we always try to destroy it.
     """
     close_old_connections()
     try:
         with posthog.new_context(capture_exceptions=True):
             posthog.tag("task", "destroy_session")
-            posthog.tag("user_id", user_id)
             posthog.tag("handle", handle)
-            User = get_user_model()
-            try:
-                user = User.objects.get(pk=user_id)
-            except User.DoesNotExist:
-                logger.warning(
-                    "destroy_session_task: user %s gone, skipping handle %s",
-                    user_id,
-                    handle,
-                )
-                return
-            destroy_session(user, handle)
+            destroy_session(handle)
     finally:
         close_old_connections()

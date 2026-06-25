@@ -7,7 +7,6 @@ from agent_on_demand.models import (
     AgentSession,
     APIKey,
     Environment,
-    UserBackendCredential,
 )
 
 
@@ -56,37 +55,20 @@ def test_landing_shows_dashboard_cta_when_logged_in(logged_in_client: Client):
 
 
 @pytest.mark.django_db
-def test_register_provisions_sprites_key_and_api_key(client: Client):
+def test_register_provisions_api_key(client: Client):
     resp = client.post(
         "/ui/register",
         data={
             "username": "charlie",
             "password1": "supersecret123!",
             "password2": "supersecret123!",
-            "sprites_api_key": "sprites-token-xyz",
         },
     )
     assert resp.status_code == 302
     assert resp.url == "/ui/welcome"
 
     charlie = User.objects.get(username="charlie")
-    cred = UserBackendCredential.objects.get(user=charlie, backend="sprites")
-    assert cred.get_token() == "sprites-token-xyz"
     assert APIKey.objects.filter(user=charlie, is_active=True).count() == 1
-
-
-@pytest.mark.django_db
-def test_register_missing_sprites_key_rejected(client: Client):
-    resp = client.post(
-        "/ui/register",
-        data={
-            "username": "erin",
-            "password1": "supersecret123!",
-            "password2": "supersecret123!",
-        },
-    )
-    assert resp.status_code == 200
-    assert not User.objects.filter(username="erin").exists()
 
 
 @pytest.mark.django_db
@@ -97,7 +79,6 @@ def test_register_mismatched_passwords_rejected(client: Client):
             "username": "dave",
             "password1": "a",
             "password2": "b",
-            "sprites_api_key": "sprites-token",
         },
     )
     assert resp.status_code == 200
@@ -112,7 +93,6 @@ def test_welcome_shows_raw_key_once(client: Client):
             "username": "frank",
             "password1": "supersecret123!",
             "password2": "supersecret123!",
-            "sprites_api_key": "sprites-token",
         },
     )
     assert resp.status_code == 302
@@ -157,34 +137,10 @@ def test_login_logout_flow(client: Client, user):
 
 
 @pytest.mark.django_db
-def test_dashboard_flags_missing_sprites_key(logged_in_client):
+def test_dashboard_renders_for_logged_in_user(logged_in_client):
     resp = logged_in_client.get("/ui/")
     assert resp.status_code == 200
-    assert b"don't have a Sprites API token" in resp.content
-
-
-@pytest.mark.django_db
-def test_dashboard_hides_warning_when_key_set(logged_in_client, user):
-    cred = UserBackendCredential(user=user, backend="sprites")
-    cred.set_token("some-token")
-    cred.save()
-    resp = logged_in_client.get("/ui/")
-    assert resp.status_code == 200
-    assert b"don't have a Sprites API token" not in resp.content
-
-
-@pytest.mark.django_db
-def test_sprites_key_create_and_rotate(logged_in_client, user):
-    resp = logged_in_client.post("/ui/sprites-key", data={"api_key": "first-token"})
-    assert resp.status_code == 302
-    cred = UserBackendCredential.objects.get(user=user, backend="sprites")
-    assert cred.get_token() == "first-token"
-
-    resp = logged_in_client.post("/ui/sprites-key", data={"api_key": "rotated-token"})
-    assert resp.status_code == 302
-    cred.refresh_from_db()
-    assert cred.get_token() == "rotated-token"
-    assert UserBackendCredential.objects.filter(user=user, backend="sprites").count() == 1
+    assert b"Dashboard" in resp.content
 
 
 @pytest.mark.django_db
@@ -309,13 +265,6 @@ def test_register_get_renders_form(client: Client):
     assert resp.status_code == 200
     # The form template references the field id_username produced by Django.
     assert b"id_username" in resp.content
-
-
-@pytest.mark.django_db
-def test_sprites_key_get_renders_form(logged_in_client):
-    resp = logged_in_client.get("/ui/sprites-key")
-    assert resp.status_code == 200
-    assert b"<form" in resp.content
 
 
 @pytest.mark.django_db
