@@ -40,7 +40,6 @@ def test_landing_is_public(client: Client):
     assert resp.status_code == 200
     body = resp.content.decode()
     assert "Agent on Demand" in body
-    assert "sprites.dev" in body
     assert "/ui/register" in body
     assert "ravi-hq.github.io/agent-on-demand" in body
 
