@@ -1,7 +1,13 @@
 {% extends "ui/base.html" %}
 {% block title %}API keys · Agent on Demand{% endblock %}
 {% block content %}
-  <h1>API keys</h1>
+  <header class="console-header">
+    <div>
+      <span class="console-kicker">Access</span>
+      <h1>API keys</h1>
+      <p>Create and revoke bearer tokens for clients that publish and run agent sessions.</p>
+    </div>
+  </header>
 
   {% if new_raw_key %}
     <div class="reveal">
@@ -10,12 +16,14 @@
     </div>
   {% endif %}
 
-  <h2>Create key</h2>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Create</button>
-  </form>
+  <section class="console-panel">
+    <h2>Create key</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Create key</button>
+    </form>
+  </section>
 
   <h2>Existing keys</h2>
   {% if keys %}
@@ -28,9 +36,9 @@
           <tr>
             <td><code>{{ k.key_prefix }}…</code></td>
             <td>{{ k.name }}</td>
-            <td>{% if k.is_active %}yes{% else %}<span class="muted">revoked</span>{% endif %}</td>
+            <td>{% if k.is_active %}<span class="status-pill">active</span>{% else %}<span class="status-pill muted">revoked</span>{% endif %}</td>
             <td>{{ k.created_at|date:"Y-m-d H:i" }}</td>
-            <td>{% if k.expires_at %}{{ k.expires_at|date:"Y-m-d H:i" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td>{% if k.expires_at %}{{ k.expires_at|date:"Y-m-d H:i" }}{% else %}<span class="muted">-</span>{% endif %}</td>
             <td>
               {% if k.is_active %}
                 <form method="post" action="{% url 'ui-api-key-revoke' k.id %}">
@@ -44,6 +52,6 @@
       </tbody>
     </table>
   {% else %}
-    <p class="muted">No keys yet.</p>
+    <p class="empty-state">No keys yet.</p>
   {% endif %}
 {% endblock %}

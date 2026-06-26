@@ -1,7 +1,14 @@
 {% extends "ui/base.html" %}
 {% block title %}Dashboard · Agent on Demand{% endblock %}
 {% block content %}
-  <h1>Dashboard</h1>
+  <header class="console-header">
+    <div>
+      <span class="console-kicker">Workspace overview</span>
+      <h1>Dashboard</h1>
+      <p>Monitor the API resources that Nebula and external clients publish into Agent on Demand.</p>
+    </div>
+    <a class="console-action" href="{% url 'ui-api-keys' %}">Manage API keys</a>
+  </header>
 
   <section class="counts">
     <div class="card">
@@ -22,8 +29,14 @@
     </div>
   </section>
 
-  <p class="muted">
-    The UI is read-only for agents, environments, and sessions. Use the
-    <a href="/health">API</a> with a bearer token to create and run them.
-  </p>
+  <section class="console-grid">
+    <div class="console-panel">
+      <h2>API service</h2>
+      <p><span class="status-pill">Accepting requests</span></p>
+    </div>
+    <div class="console-panel">
+      <h2>Control plane</h2>
+      <p>The dashboard is read-only for agents, environments, and sessions. Use Nebula or the API to create and run them.</p>
+    </div>
+  </section>
 {% endblock %}

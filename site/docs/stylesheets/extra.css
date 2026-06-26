@@ -1,0 +1,21 @@
+:root {
+  --ravi-ink: #151820;
+  --ravi-ink-soft: #5f6678;
+  --ravi-bg: #f7f8fb;
+  --ravi-surface: #ffffff;
+  --ravi-border: #dfe3ec;
+  --ravi-accent: #5b5cf6;
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--ravi-ink);
+  --md-accent-fg-color: var(--ravi-accent);
+  --md-default-bg-color: var(--ravi-bg);
+  --md-default-fg-color: var(--ravi-ink);
+  --md-default-fg-color--light: var(--ravi-ink-soft);
+}
+
+elements-api {
+  display: block;
+  min-height: 80vh;
+}

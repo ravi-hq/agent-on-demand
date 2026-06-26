@@ -1,0 +1,143 @@
+:root {
+  color-scheme: light dark;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ravi-ink: #151820;
+  --ravi-ink-soft: #5f6678;
+  --ravi-bg: #f7f8fb;
+  --ravi-surface: #ffffff;
+  --ravi-border: #dfe3ec;
+  --ravi-accent: #5b5cf6;
+  --ravi-success: #16a67a;
+  --ravi-warning: #b7791f;
+  --ravi-danger: #c2414b;
+  --ravi-terminal: #0f1320;
+  --ravi-radius-sm: 5px;
+  --ravi-radius-md: 8px;
+}
+
+body {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+  line-height: 1.4;
+  color: var(--ravi-ink);
+  background: var(--ravi-bg);
+}
+
+h1 {
+  font-size: 1.3rem;
+  margin-bottom: 0;
+}
+
+.sub {
+  color: var(--ravi-ink-soft);
+  font-size: 0.9rem;
+  margin-top: 0.2rem;
+}
+
+form {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+input,
+button {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+}
+
+input {
+  flex: 1;
+  border: 1px solid var(--ravi-border);
+  border-radius: var(--ravi-radius-sm);
+  background: var(--ravi-surface);
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--ravi-border);
+  border-radius: var(--ravi-radius-sm);
+  background: var(--ravi-surface);
+  color: var(--ravi-ink);
+}
+
+section {
+  margin-top: 1.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--ravi-border);
+}
+
+th {
+  font-weight: 600;
+  color: var(--ravi-ink-soft);
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.pill-running {
+  background: #fff6df;
+  color: var(--ravi-warning);
+}
+
+.pill-pending {
+  background: #eef0ff;
+  color: var(--ravi-accent);
+}
+
+.pill-completed {
+  background: #e9f8f2;
+  color: var(--ravi-success);
+}
+
+.pill-failed {
+  background: #fff0f1;
+  color: var(--ravi-danger);
+}
+
+.pill-terminated {
+  background: #eef1f6;
+  color: var(--ravi-ink-soft);
+}
+
+#log {
+  background: var(--ravi-terminal);
+  color: #d9def0;
+  padding: 1rem;
+  border-radius: var(--ravi-radius-md);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  min-height: 10rem;
+  max-height: 28rem;
+  overflow-y: auto;
+}
+
+.output-title {
+  font-size: 1rem;
+  margin-bottom: 0.3rem;
+}
+
+button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ravi-accent);
+  cursor: pointer;
+}

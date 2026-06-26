@@ -1,8 +1,13 @@
 {% extends "ui/base.html" %}
 {% block title %}{{ env.name }} · Environment{% endblock %}
 {% block content %}
-  <p><a href="{% url 'ui-environments' %}">← Environments</a></p>
-  <h1>{{ env.name }}</h1>
+  <header class="console-header">
+    <div>
+      <span class="console-kicker"><a href="{% url 'ui-environments' %}">Environments</a></span>
+      <h1>{{ env.name }}</h1>
+      <p>Runtime package, networking, and setup configuration for sessions.</p>
+    </div>
+  </header>
   <dl class="kv">
     <dt>ID</dt><dd><code>{{ env.id }}</code></dd>
     <dt>Version</dt><dd>v{{ env.version }}</dd>
@@ -21,16 +26,16 @@
             <li><code>{{ mgr }}</code>: {{ pkgs|join:", " }}</li>
           {% endfor %}
         </ul>
-      {% else %}<span class="muted">—</span>{% endif %}
+      {% else %}<span class="muted">-</span>{% endif %}
     </dd>
-    <dt>Setup script</dt><dd><pre>{{ env.setup_script|default:"—" }}</pre></dd>
+    <dt>Setup script</dt><dd><pre>{{ env.setup_script|default:"-" }}</pre></dd>
     <dt>env_vars</dt>
     <dd>
       {% if env.env_vars %}
         <ul>{% for k in env.env_vars.keys %}<li><code>{{ k }}</code> <span class="muted">(value hidden)</span></li>{% endfor %}</ul>
-      {% else %}<span class="muted">—</span>{% endif %}
+      {% else %}<span class="muted">-</span>{% endif %}
     </dd>
-    <dt>Status</dt><dd>{% if env.archived_at %}archived on {{ env.archived_at|date:"Y-m-d H:i" }}{% else %}active{% endif %}</dd>
+    <dt>Status</dt><dd>{% if env.archived_at %}<span class="status-pill muted">archived</span> {{ env.archived_at|date:"Y-m-d H:i" }}{% else %}<span class="status-pill">active</span>{% endif %}</dd>
     <dt>Created</dt><dd>{{ env.created_at|date:"Y-m-d H:i" }}</dd>
     <dt>Updated</dt><dd>{{ env.updated_at|date:"Y-m-d H:i" }}</dd>
   </dl>

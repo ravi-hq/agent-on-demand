@@ -1,7 +1,13 @@
 {% extends "ui/base.html" %}
 {% block title %}Environments · Agent on Demand{% endblock %}
 {% block content %}
-  <h1>Environments</h1>
+  <header class="console-header">
+    <div>
+      <span class="console-kicker">Runtime</span>
+      <h1>Environments</h1>
+      <p>Published runtime environments used when sessions are provisioned.</p>
+    </div>
+  </header>
   {% if envs %}
     <table>
       <thead>
@@ -13,13 +19,13 @@
             <td><a href="{% url 'ui-environment-detail' e.id %}">{{ e.name }}</a></td>
             <td>{{ e.networking_type }}</td>
             <td>v{{ e.version }}</td>
-            <td>{% if e.archived_at %}<span class="muted">archived</span>{% else %}active{% endif %}</td>
+            <td>{% if e.archived_at %}<span class="status-pill muted">archived</span>{% else %}<span class="status-pill">active</span>{% endif %}</td>
             <td>{{ e.created_at|date:"Y-m-d H:i" }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <p class="muted">No environments yet. Create one via the API.</p>
+    <p class="empty-state">No environments yet. Create one via the API.</p>
   {% endif %}
 {% endblock %}
