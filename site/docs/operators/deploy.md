@@ -12,7 +12,7 @@ This guide covers running your own Agent on Demand instance in production.
 
 !!! note "Database"
     The default `DATABASE_URL` points at a local Postgres container started by
-    `make db-up` (`docker compose up -d db`). For production, override
+    `make up` (`docker compose up -d db`). For production, override
     `DATABASE_URL` with your own Postgres DSN
     (e.g. `postgres://user:pass@host:5432/aod`). SQLite is **not** a supported
     backend — it's only wired up for the unit-test suite, which stubs the
@@ -29,7 +29,7 @@ sourced from `src/config/settings.py`:
 | `FIELD_ENCRYPTION_KEY` | Yes (prod) | Falls back to `DJANGO_SECRET_KEY` | KEK for encrypted `UserBackendCredential` / `UserCredential` rows — **durable; rotating requires a re-encrypt migration** |
 | `DJANGO_DEBUG` | No | `true` | Set to `false` in production |
 | `DJANGO_ALLOWED_HOSTS` | No | `*` | Comma-separated list of allowed host headers |
-| `DATABASE_URL` | Yes | `postgres://agent_on_demand:agent_on_demand@localhost:5460/agent_on_demand` (matches `make db-up`) | Postgres DSN parsed by `dj-database-url`. Postgres is required — SQLite is only used by the test suite. |
+| `DATABASE_URL` | Yes | `postgres://agent_on_demand:agent_on_demand@localhost:5460/agent_on_demand` (matches `make up`) | Postgres DSN parsed by `dj-database-url`. Postgres is required — SQLite is only used by the test suite. |
 | `SPRITES_BASE_URL` | No | `https://api.sprites.dev` | Override the Sprites API base URL |
 | `SPRITE_NAME_PREFIX` | No | `aod` | Prefix applied to all Sprite names created by this instance |
 | `DEFAULT_TIMEOUT` | No | `600` | Default session timeout in seconds |

@@ -1,159 +1,158 @@
 {% extends "ui/base.html" %}
-{% block title %}Agent on Demand · Coding agents as an API{% endblock %}
+{% block title %}Agent on Demand · Agent infrastructure for your product{% endblock %}
 {% block body_class %}landing-body{% endblock %}
 {% block content %}
   <div class="landing-page">
+    <section class="landing-hero" aria-labelledby="aod-hero-title">
+      <div class="landing-topline">
+        <span>Ravi internal cloud</span>
+        <span>Agent infrastructure API</span>
+      </div>
 
-    <section class="landing-hero">
-      <div class="landing-container landing-hero-grid">
+      <div class="landing-hero-grid">
         <div class="landing-hero-copy">
-          <div class="eyebrow">
-            <span class="dot dot-green pulse"></span>
-            REST API · Open source · Apache-2.0
+          <div class="landing-product-lockup">
+            <span class="landing-mark" aria-hidden="true"></span>
+            <span>Agent on Demand</span>
           </div>
-          <h1>
-            Agents as
-            <span class="grad">a primitive.</span>
-          </h1>
-          <p class="lede">
-            Build apps where AI agents are part of the runtime — not a chat
-            box bolted on the side. Define an agent, send a prompt, stream
-            what it does over SSE. Agent on Demand runs the sandbox, the
-            secrets, the lifecycle. You ship the product.
+          <h1 id="aod-hero-title">Ship agent workflows without building the runtime.</h1>
+          <p>
+            Give your product a clean API for long-running coding agents:
+            isolated sandboxes, versioned configs, live event streams,
+            resumable sessions, and reliable teardown.
           </p>
+          <div class="landing-auth-proof">
+            <span>Sandboxed sessions</span>
+            <span>Live event streams</span>
+            <span>Versioned configs</span>
+            <span>Bring your own keys</span>
+          </div>
+        </div>
+
+        <div class="landing-command-panel" aria-label="Agent on Demand quickstart">
+          <p class="landing-kicker">Session primitive</p>
+          <h2>From user action to running agent in three calls.</h2>
+          <ol class="landing-call-stack">
+            <li>
+              <span>POST</span>
+              <code>/agents</code>
+              <strong>Package the model, runtime, tools, and instructions.</strong>
+            </li>
+            <li>
+              <span>POST</span>
+              <code>/sessions</code>
+              <strong>Launch the job from your app with prompt and resources.</strong>
+            </li>
+            <li>
+              <span>GET</span>
+              <code>/sessions/&lt;id&gt;/stream</code>
+              <strong>Stream progress, logs, status, and output back to users.</strong>
+            </li>
+          </ol>
           <div class="landing-ctas">
             {% if user.is_authenticated %}
-              <a class="btn-primary" href="{% url 'ui-dashboard' %}">Open dashboard →</a>
+              <a class="btn-primary" href="{% url 'ui-dashboard' %}">Open dashboard <span aria-hidden="true">&rarr;</span></a>
             {% else %}
-              <a class="btn-primary" href="{% url 'ui-register' %}">Get started — it's free →</a>
+              <a class="btn-primary" href="{% url 'ui-register' %}">Create account <span aria-hidden="true">&rarr;</span></a>
             {% endif %}
-            <a class="btn-ghost" href="https://ravi-hq.github.io/agent-on-demand">Read the docs</a>
-            <a class="btn-ghost" href="https://ravi-hq.github.io/agent-on-demand/api/why/">Why this exists</a>
-            <a class="btn-ghost" href="https://github.com/ravi-hq/agent-on-demand">GitHub ↗</a>
+            <a class="btn-secondary" href="https://ravi-hq.github.io/agent-on-demand">Read docs</a>
           </div>
-          <div class="hero-meta">
-            <span><span class="dot dot-green"></span> Sandboxed per session</span>
-            <span><span class="dot dot-blue"></span> Bring your own keys</span>
-            <span><span class="dot dot-violet"></span> Versioned &amp; auditable</span>
-          </div>
-        </div>
-
-        <div class="terminal" aria-hidden="true">
-          <div class="terminal-bar">
-            <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
-            <span class="terminal-title">aod.ravi.id · live session</span>
-          </div>
-<pre class="terminal-body"><span class="c-mute">$</span> <span class="c-cmd">curl -N https://aod.ravi.id/sessions/…/stream \
-    -H "Authorization: Bearer $AOD_KEY"</span>
-
-<span class="c-evt">data:</span> <span class="c-str">{"type":"start","runtime":"claude","session_id":"…"}</span>
-
-<span class="c-mute">id: 1</span>
-<span class="c-evt">data:</span> <span class="c-str">{"type":"stage","id":1,"stage":"create_sprite","state":"done","duration_ms":3820}</span>
-
-<span class="c-evt">data:</span> <span class="c-str">{"type":"turn_start","id":2,"turn":1}</span>
-
-<span class="c-mute">id: 2</span>
-<span class="c-evt">data:</span> <span class="c-str">{"type":"output","id":2,"stream":"stdout","data":"Reading src/payments.py…","turn":1}</span>
-
-<span class="c-mute">id: 3</span>
-<span class="c-evt">data:</span> <span class="c-str">{"type":"output","id":3,"stream":"stdout","data":"Refactored 3 files, 142 lines changed.","turn":1}</span>
-
-<span class="c-mute">id: 4</span>
-<span class="c-evt">data:</span> <span class="c-str">{"type":"exit","id":4,"code":0}</span><span class="caret">▍</span></pre>
         </div>
       </div>
     </section>
 
-    <section class="landing-container landing-features">
-      <div class="feature">
-        <div class="feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 17h7"/></svg>
+    <section class="landing-container landing-resource-grid" aria-label="Agent on Demand capabilities">
+      <a class="landing-resource-card" href="https://ravi-hq.github.io/agent-on-demand/api/quickstart/">
+        <div>
+          <p class="landing-kicker">Reusable workers</p>
+          <h2>Agents</h2>
+          <p>Define the agent once with model, runtime, instructions, MCP servers, skills, and default resources.</p>
         </div>
-        <h3>Kanban that ships PRs</h3>
-        <p>Move a card to <em>In Progress</em>. Spawn Claude Code in a fresh sandbox. The agent opens the PR. The card moves itself to <em>In Review</em> when the run finishes.</p>
+        <span>Configurable</span>
+      </a>
+      <a class="landing-resource-card" href="https://ravi-hq.github.io/agent-on-demand/api/sessions/">
+        <div>
+          <p class="landing-kicker">Live work units</p>
+          <h2>Sessions</h2>
+          <p>Run work in isolated sandboxes, resume later turns, terminate jobs, and keep the full event trail.</p>
+        </div>
+        <span>Streamed</span>
+      </a>
+      <a class="landing-resource-card" href="https://ravi-hq.github.io/agent-on-demand/api/environments/">
+        <div>
+          <p class="landing-kicker">Production context</p>
+          <h2>Environments</h2>
+          <p>Attach env vars, packages, repositories, setup scripts, and network rules without leaking them into UI code.</p>
+        </div>
+        <span>Controlled</span>
+      </a>
+      <a class="landing-resource-card" href="https://ravi-hq.github.io/agent-on-demand/patterns/">
+        <div>
+          <p class="landing-kicker">Product patterns</p>
+          <h2>Patterns</h2>
+          <p>Power review bots, research fleets, triage queues, CI agents, CLI wrappers, and internal ops tools.</p>
+        </div>
+        <span>Shippable</span>
+      </a>
+    </section>
+
+    <section class="landing-container landing-console-grid" aria-label="Operational model">
+      <div class="landing-console-panel">
+        <div class="landing-panel-header">
+          <h2>You build the product experience</h2>
+          <a href="https://ravi-hq.github.io/agent-on-demand/api/quickstart/">Quickstart</a>
+        </div>
+        <ul class="landing-link-list">
+          <li><span>01</span> Decide where agents appear in your workflow.</li>
+          <li><span>02</span> Send the prompt, repo, ticket, or customer context.</li>
+          <li><span>03</span> Render live progress directly in your interface.</li>
+          <li><span>04</span> Store status, logs, artifacts, and follow-up turns.</li>
+        </ul>
       </div>
-      <div class="feature">
-        <div class="feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-7-7.5-7-13a7 7 0 0 1 14 0c0 5.5-7 13-7 13z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      <div class="landing-console-panel">
+        <div class="landing-panel-header">
+          <h2>AOD runs the machinery</h2>
+          <a href="https://ravi-hq.github.io/agent-on-demand/operators/deploy/">Deploy guide</a>
         </div>
-        <h3>Research fleets, live on the page</h3>
-        <p>Fan out a swarm of agents to investigate neighborhoods, schools, vendors, anything. Each session streams its findings back. Your UI fills in as the work completes.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg>
-        </div>
-        <h3>Inboxes that triage themselves</h3>
-        <p>Every inbound ticket spawns an investigator agent. It reproduces the bug, writes the repro, files the report. Your humans see triaged tickets, not raw ones.</p>
+        <ul class="landing-link-list">
+          <li><span>API</span> Authenticated endpoints for agents, sessions, and environments.</li>
+          <li><span>RUN</span> Fresh sandbox lifecycle for every job.</li>
+          <li><span>LOG</span> Durable event history that can be replayed after disconnects.</li>
+          <li><span>OPS</span> Runtime setup, teardown, termination, and recovery hooks.</li>
+        </ul>
       </div>
     </section>
 
-    <section class="landing-container" style="margin-top: 1.5rem;">
-      <p class="muted" style="text-align: center; margin: 0;">
-        None of these are coding tools. They're products that use coding agents as compute.
-        <a href="https://ravi-hq.github.io/agent-on-demand/patterns/">See the patterns →</a>
-      </p>
-    </section>
-
-    <section class="landing-container landing-code">
-      <div class="section-head">
-        <h2>Three calls. One session.</h2>
-        <p class="muted">The whole API fits on a napkin. Create it, prompt it, stream it.</p>
+    <section class="landing-container landing-code-band" aria-label="API example">
+      <div class="landing-code-copy">
+        <p class="landing-kicker">Small integration surface</p>
+        <h2>Turn any product action into agent work.</h2>
+        <p>
+          When a user clicks run, review, research, triage, or fix, your app
+          creates a session and streams the result back. AOD stays behind the
+          scenes as the agent control plane.
+        </p>
       </div>
-<pre class="code-block"><span class="c-mute"># 1. Create an agent (runtime + model)</span>
-<span class="c-cmd">curl -X POST https://aod.ravi.id/agents</span> \
-  -H <span class="c-str">"Authorization: Bearer $AOD_KEY"</span> \
-  -H <span class="c-str">"Content-Type: application/json"</span> \
-  -d <span class="c-str">'{"name":"refactor-bot","model":"anthropic/claude-sonnet-4-6","runtime":"claude"}'</span>
-
-<span class="c-mute"># 2. Start a session</span>
+<pre class="code-block"><span class="c-mute"># Start a run</span>
 <span class="c-cmd">curl -X POST https://aod.ravi.id/sessions</span> \
   -H <span class="c-str">"Authorization: Bearer $AOD_KEY"</span> \
   -H <span class="c-str">"Content-Type: application/json"</span> \
-  -d <span class="c-str">'{"agent_id":"&lt;id&gt;","prompt":"refactor payments.py"}'</span>
+  -d <span class="c-str">'{"agent_id":"&lt;id&gt;","prompt":"review this PR"}'</span>
 
-<span class="c-mute"># 3. Stream the output (SSE)</span>
+<span class="c-mute"># Stream the work back into your UI</span>
 <span class="c-cmd">curl -N https://aod.ravi.id/sessions/&lt;id&gt;/stream</span> \
-  -H <span class="c-str">"Authorization: Bearer $AOD_KEY"</span>
-</pre>
+  -H <span class="c-str">"Authorization: Bearer $AOD_KEY"</span></pre>
     </section>
 
-    <section class="landing-container runtime-strip">
-      <h2>Runs the agent CLI you already use.</h2>
-      <div class="runtime-grid">
-        <div class="runtime-chip">claude</div>
-        <div class="runtime-chip">codex</div>
-        <div class="runtime-chip">gemini</div>
-        <div class="runtime-chip">opencode</div>
-        <div class="runtime-chip runtime-chip-muted">+ your PR welcome</div>
+    <section class="landing-container landing-runtime-strip" aria-label="Supported runtimes">
+      <p class="landing-kicker">Runtime adapters</p>
+      <div class="landing-runtime-grid">
+        <span>claude</span>
+        <span>codex</span>
+        <span>gemini</span>
+        <span>opencode</span>
+        <span>your runtime next</span>
       </div>
     </section>
-
-    <section class="landing-container landing-outro">
-      <div class="landing-block">
-        <h2>Powered by Sprites.</h2>
-        <p>
-          Every session runs inside a fresh sandbox provisioned on
-          <a href="https://sprites.dev">sprites.dev</a>. Compute is fully
-          managed by the platform — bring your model API keys and we handle the
-          rest. Want your own sandbox account? Self-host the open-source repo.
-        </p>
-      </div>
-      <div class="landing-block">
-        <h2>Open source. Contributors welcome.</h2>
-        <p>
-          Agent on Demand is Apache-2.0 and lives on
-          <a href="https://github.com/ravi-hq/agent-on-demand">GitHub</a>.
-          We'd especially love help adding more runtimes and model backends.
-          If your favorite agent CLI isn't supported, open a PR.
-        </p>
-        <p>
-          <a class="btn-secondary" href="https://github.com/ravi-hq/agent-on-demand/issues">Browse issues</a>
-          <a class="btn-secondary" href="https://ravi-hq.github.io/agent-on-demand">Architecture docs</a>
-        </p>
-      </div>
-    </section>
-
   </div>
 {% endblock %}

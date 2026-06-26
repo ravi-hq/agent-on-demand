@@ -36,12 +36,14 @@ from pathlib import Path
 from aod import AsyncClient, ConflictError, NotFoundError
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 AGENT_ID = os.environ["AOD_AGENT_ID"]
 PORT = int(os.environ.get("PORT", "8000"))
 
 INDEX_HTML = Path(__file__).parent / "templates" / "index.html"
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -53,6 +55,7 @@ async def lifespan(app_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 class StartSession(BaseModel):

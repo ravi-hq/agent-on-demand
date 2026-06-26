@@ -1,7 +1,13 @@
 {% extends "ui/base.html" %}
 {% block title %}Agents · Agent on Demand{% endblock %}
 {% block content %}
-  <h1>Agents</h1>
+  <header class="console-header">
+    <div>
+      <span class="console-kicker">Compose</span>
+      <h1>Agents</h1>
+      <p>Published agent definitions available to API clients and session runners.</p>
+    </div>
+  </header>
   {% if agents %}
     <table>
       <thead>
@@ -14,13 +20,13 @@
             <td>{{ a.model }}</td>
             <td>{{ a.runtime }}</td>
             <td>v{{ a.version }}</td>
-            <td>{% if a.archived_at %}<span class="muted">archived</span>{% else %}active{% endif %}</td>
+            <td>{% if a.archived_at %}<span class="status-pill muted">archived</span>{% else %}<span class="status-pill">active</span>{% endif %}</td>
             <td>{{ a.created_at|date:"Y-m-d H:i" }}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
   {% else %}
-    <p class="muted">No agents yet. Create one via the API.</p>
+    <p class="empty-state">No agents yet. Create one via the API.</p>
   {% endif %}
 {% endblock %}
