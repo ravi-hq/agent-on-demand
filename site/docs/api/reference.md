@@ -6,7 +6,7 @@ stoplight: true
 
 This page provides an interactive API reference powered by [Stoplight Elements](https://stoplight.io/open-source/elements). Browse all endpoints, view request/response schemas, and make live requests directly against your Agent on Demand deployment.
 
-<div>
+<div class="api-reference-embed">
   <elements-api
     apiDescriptionUrl="../openapi.json"
     router="hash"
