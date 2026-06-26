@@ -54,7 +54,7 @@ See [`clients/python/`](clients/python/) and [`clients/typescript/`](clients/typ
 
 ```bash
 make install       # uv sync --all-extras
-make db-up         # start local Postgres (Docker) + run migrations
+make up            # start local Postgres (Docker) + run migrations
 ```
 
 Session execution runs on a separate **worker** process (Procrastinate, Postgres-backed).
@@ -67,11 +67,11 @@ make dev           # web — serves HTTP on :8777
 make worker        # worker — runs session turns
 ```
 
-`docker-compose.yml` provisions Postgres 16 on `:5432`. Override `DATABASE_URL` to point
+`docker-compose.yml` provisions Postgres 16 on `:5460`. Override `DATABASE_URL` to point
 at another DB.
 
 ```bash
-make db-down       # stop the container
+make down          # stop the container
 make db-reset      # destroy the volume and re-migrate
 ```
 

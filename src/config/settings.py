@@ -71,7 +71,7 @@ APPEND_SLASH = False
 CORS_ALLOW_ALL_ORIGINS = True
 
 # Local default points at the Postgres container in docker-compose.yml
-# (`make db-up`). Override via DATABASE_URL for production (Render injects it)
+# (`make up`). Override via DATABASE_URL for production (Render injects it)
 # or to point at another DB. Procrastinate requires Postgres; SQLite fallback
 # is only useful for running the Django test suite without Postgres running.
 DATABASES = {

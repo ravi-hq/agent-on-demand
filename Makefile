@@ -1,29 +1,67 @@
+.PHONY: install up down restart db-reset db logs dev worker shell migrate migrations \
+	test coverage mutation-test mutation-report test-e2e test-e2e-fast test-e2e-skills \
+	test-e2e-networking test-e2e-mcp scope-e2e test-e2e-scoped test-all \
+	check-migrations check-schemas snapshot-schemas lint lint-fix fmt fmt-check \
+	typecheck security sdk-install test-sdk lint-sdk check-sdk-parity
+
 install:
 	uv sync --all-extras
 
-# Start the local Postgres container (docker-compose.yml). Blocks until ready.
-db-up:
+# ----------------
+#    Docker (Postgres)
+# ----------------
+
+# Start the local Postgres container (docker-compose.yml). Blocks until ready,
+# then applies migrations so the DB is usable in one command.
+up:
 	docker compose up -d db
 	@until docker compose exec -T db pg_isready -U agent_on_demand >/dev/null 2>&1; do \
 		echo "waiting for postgres..."; sleep 1; \
 	done
 	uv run python manage.py migrate
 
-db-down:
+down:
 	docker compose down
+
+restart: down up
 
 # Reset local dev DB — destroys the data volume, recreates the container, migrates.
 db-reset:
 	docker compose down -v
-	$(MAKE) db-up
+	$(MAKE) up
 
+# Open a psql shell on the Postgres container.
+db:
+	docker compose exec db psql -U agent_on_demand -d agent_on_demand
+
+# Tail Postgres container logs.
+logs:
+	docker compose logs -f
+
+# ----------------
+#    Development
+# ----------------
+
+# Web service — serves HTTP on :8777 (the worker handles session execution).
 dev:
 	PYTHONPATH=src uv run uvicorn config.asgi:application --host 0.0.0.0 --port 8777 --reload
 
 # Procrastinate worker. Session execution runs here; `make dev` only handles HTTP.
-# Requires the Postgres container to be up (`make db-up`).
+# Requires the Postgres container to be up (`make up`).
 worker:
 	uv run python manage.py procrastinate worker
+
+# Django shell (app runs on the host; talks to the Docker Postgres via DATABASE_URL).
+shell:
+	uv run python manage.py shell
+
+# Apply migrations to the running Docker Postgres.
+migrate:
+	uv run python manage.py migrate
+
+# Generate new migrations from model changes.
+migrations:
+	uv run python manage.py makemigrations
 
 # Unit + integration tests (e2e suite excluded). Tests run against SQLite so
 # Postgres doesn't need to be running; Procrastinate migrations are skipped
@@ -153,8 +191,9 @@ security:
 	uv run pip-audit --ignore-vuln CVE-2026-3219
 	uv run bandit -r src/ -ll
 
-fmt:
-	uv run ruff format && ruff check --fix
+# `lint-fix` mirrors the backend repo's target name; `fmt` is kept as an alias.
+lint-fix fmt:
+	uv run ruff format src/ tests/ && uv run ruff check --fix src/ tests/
 
 # --- Python SDK (clients/python) ---------------------------------------------
 
