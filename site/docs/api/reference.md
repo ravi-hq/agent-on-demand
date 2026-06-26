@@ -8,7 +8,7 @@ This page provides an interactive API reference powered by [Stoplight Elements](
 
 <div>
   <elements-api
-    apiDescriptionUrl="openapi.json"
+    apiDescriptionUrl="../openapi.json"
     router="hash"
     layout="stacked"
     tryItCredentialsPolicy="include"
