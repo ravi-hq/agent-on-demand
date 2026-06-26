@@ -19,3 +19,28 @@ elements-api {
   display: block;
   min-height: 80vh;
 }
+
+.api-reference-embed {
+  color: var(--ravi-ink);
+  color-scheme: light;
+  background: #ffffff;
+  border: 1px solid var(--ravi-border);
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  padding: 1rem;
+}
+
+.api-reference-embed elements-api {
+  color: var(--ravi-ink);
+}
+
+.api-reference-embed elements-api :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--ravi-ink);
+}
+
+.api-reference-embed elements-api svg.svg-inline--fa {
+  height: 1em;
+  max-width: none;
+  width: auto;
+}
