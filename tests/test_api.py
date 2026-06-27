@@ -10,8 +10,8 @@ from agent_on_demand.models import (
     APIKey,
     AgentSession,
     AgentSessionLog,
+    SessionSecretEnvVars,
     SessionTurn,
-    UserCredential,
     UserQuota,
 )
 
@@ -62,25 +62,14 @@ def sprites_key(settings):
 
 @pytest.fixture
 def runtime_key(user, sprites_key):
-    """Create a UserCredential for the anthropic provider (Claude runtime).
-
-    Depends on `sprites_key` so tests that exercise session create/prompt also
-    have the per-user Sprites token configured.
-    """
-    cred = UserCredential(user=user, kind="provider:anthropic")
-    cred.set_value("fake-anthropic-key")
-    cred.save()
-    return cred
+    """Legacy fixture name: session creation now only needs backend config."""
+    return {"ANTHROPIC_API_KEY": "fake-anthropic-key"}
 
 
 @pytest.fixture
 def runtime_key_without_sprites(user):
-    """Runtime credential configured, but the platform Sprites token is left
-    unset — for negative tests."""
-    cred = UserCredential(user=user, kind="provider:anthropic")
-    cred.set_value("fake-anthropic-key")
-    cred.save()
-    return cred
+    """Legacy fixture name for negative backend-config tests."""
+    return {"ANTHROPIC_API_KEY": "fake-anthropic-key"}
 
 
 @pytest.fixture
@@ -178,19 +167,6 @@ def test_run_agent_not_found(client: Client, auth_headers):
 
 
 @pytest.mark.django_db
-def test_run_no_runtime_key(client: Client, auth_headers, agent):
-    """Authenticated but no UserCredential configured for the agent's runtime."""
-    resp = client.post(
-        "/sessions",
-        data=json.dumps({"agent_id": str(agent.id), "prompt": "hello"}),
-        content_type="application/json",
-        **auth_headers,
-    )
-    assert resp.status_code == 400
-    assert "No API key configured" in resp.json()["detail"]
-
-
-@pytest.mark.django_db
 def test_run_no_backend_credential(
     client: Client, auth_headers, runtime_key_without_sprites, agent
 ):
@@ -204,6 +180,32 @@ def test_run_no_backend_credential(
     )
     assert resp.status_code == 503
     assert "Session backend is not configured" in resp.json()["detail"]
+
+
+@pytest.mark.django_db
+def test_run_persists_secret_env_vars_encrypted(
+    client: Client, auth_headers, runtime_key, agent, fake_sprites
+):
+    resp = client.post(
+        "/sessions",
+        data=json.dumps(
+            {
+                "agent_id": str(agent.id),
+                "prompt": "hello",
+                "secret_env_vars": {"ANTHROPIC_API_KEY": "sk-ant-secret"},
+            }
+        ),
+        content_type="application/json",
+        **auth_headers,
+    )
+    assert resp.status_code == 202
+    session = AgentSession.objects.get(pk=resp.json()["id"])
+    row = SessionSecretEnvVars.objects.get(session=session)
+    assert bytes(row.encrypted_env_vars) != b'{"ANTHROPIC_API_KEY":"sk-ant-secret"}'
+    assert row.get_env_vars() == {"ANTHROPIC_API_KEY": "sk-ant-secret"}
+    assert (
+        "ANTHROPIC_API_KEY=sk-ant-secret" in fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
+    )
 
 
 @pytest.mark.django_db
@@ -250,7 +252,7 @@ def test_run_returns_202_with_session_id(
     assert session.runtime == "claude"
     assert session.status == "pending"
     assert session.prompt == "hello"
-    assert session.user == runtime_key.user
+    assert session.user == agent.user
     assert session.agent == agent
 
 

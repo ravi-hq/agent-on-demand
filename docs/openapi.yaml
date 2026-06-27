@@ -896,11 +896,11 @@ components:
         env_vars:
           type: object
           description: >
-            Encrypted at rest; never returned in responses. Unlike `metadata`,
-            an `env_vars` payload on PUT *fully replaces* the existing map —
-            it does not merge per-key. Empty-string values are stored as-is
-            (the variable is exported with an empty value); to remove a key,
-            omit it from the payload.
+            Never returned in responses. Unlike `metadata`, an `env_vars`
+            payload on PUT *fully replaces* the existing map — it does not
+            merge per-key. Empty-string values are stored as-is (the variable
+            is exported with an empty value); to remove a key, omit it from
+            the payload.
           additionalProperties:
             type: string
         setup_script:
@@ -922,10 +922,10 @@ components:
         env_vars:
           type: object
           description: >
-            Encrypted at rest; never returned in responses. A PUT *fully
-            replaces* the existing map — it does not merge per-key.
-            Empty-string values are stored as-is (the variable is exported
-            with an empty value); to remove a key, omit it from the payload.
+            Never returned in responses. A PUT *fully replaces* the existing
+            map — it does not merge per-key. Empty-string values are stored
+            as-is (the variable is exported with an empty value); to remove a
+            key, omit it from the payload.
           additionalProperties:
             type: string
         setup_script:
@@ -1081,6 +1081,14 @@ components:
             `mount_path`s must be unique.
           items:
             $ref: "#/components/schemas/GitHubRepoResourceInput"
+        secret_env_vars:
+          type: object
+          additionalProperties:
+            type: string
+          description: >
+            Session-scoped secret environment variables, such as BYOK provider
+            keys. Values are encrypted at rest, sourced into `/tmp/aod-env`,
+            and never returned by API responses.
 
     SessionCreateAck:
       type: object

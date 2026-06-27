@@ -19,7 +19,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 
 from agent_on_demand import observability
-from agent_on_demand.models import APIKey, UserCredential
+from agent_on_demand.models import APIKey
 
 
 SENSITIVE_PROMPT = "PLEASE_DO_NOT_LEAK_THIS_PROMPT_TEXT_2026"
@@ -43,9 +43,6 @@ def auth_headers(user):
 @pytest.fixture
 def runtime_keys(user, settings):
     settings.SPRITES_API_KEY = "fake-sprites"
-    cred = UserCredential(user=user, kind="provider:anthropic")
-    cred.set_value("fake-anthropic")
-    cred.save()
 
 
 @pytest.fixture

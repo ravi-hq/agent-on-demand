@@ -60,6 +60,22 @@ describe("sessions", () => {
     });
   });
 
+  it("forwards session-scoped secret env vars", async () => {
+    const server = new MockServer();
+    const sid = uuid();
+    server.json("POST", "/sessions", 201, { id: sid, status: "pending" });
+    await newClient(server).sessions.create({
+      agent_id: "a1",
+      prompt: "do a thing",
+      secret_env_vars: { ANTHROPIC_API_KEY: "sk-ant-secret" },
+    });
+    expect(server.requests[0]?.body).toEqual({
+      agent_id: "a1",
+      prompt: "do a thing",
+      secret_env_vars: { ANTHROPIC_API_KEY: "sk-ant-secret" },
+    });
+  });
+
   it("409 on prompt to a terminal session", async () => {
     const server = new MockServer();
     server.json("POST", "/sessions/s1/prompt", 409, { detail: "terminal" });

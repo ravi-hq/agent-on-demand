@@ -71,6 +71,7 @@ class SessionSpec:
     repos: list[RepoSpec]
     mcp_servers: list[McpServerSpec]
     skills: list[SkillSpec]
+    secret_env_vars: dict[str, str] = field(default_factory=dict)
     # Backend discriminator — the registry key that selects which Backend
     # implementation provisions and executes this session. Defaults to
     # "sprites" so callers that pre-date the discriminator (and tests that

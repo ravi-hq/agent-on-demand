@@ -12,7 +12,7 @@ function newClient(server: MockServer): Client {
 }
 
 describe("environments", () => {
-  it("creates environments with encrypted env_vars in the payload", async () => {
+  it("creates environments with env_vars in the payload", async () => {
     const server = new MockServer();
     server.json("POST", "/environments", 201, makeEnvironment());
     await newClient(server).environments.create({

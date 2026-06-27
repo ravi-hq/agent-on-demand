@@ -35,20 +35,18 @@ curl -X POST https://aod.ravi.id/agents \
 
 ## Supplying API keys
 
-Each provider reads its API key from a specific env var at session start. Credentials are
-stored per-user, encrypted at rest, and injected automatically into every session. On the
-hosted API (`aod.ravi.id`) you register them once via the dashboard. When self-hosting,
-set them via the Django shell — see
-[Deploy → Sprites credentials](../operators/deploy.md#sprites-credentials).
+Each provider reads its API key from a specific env var at session start. AOD does not
+store reusable per-user provider credentials. Trusted callers supply BYOK values as
+session-scoped `secret_env_vars` on `POST /sessions`; AOD encrypts those values at rest,
+writes them into the Sprite's `/tmp/aod-env`, and never returns them in API responses.
 
-`env_vars` on an environment are also sourced into the session and **override** any
-matching user credential — useful for pinning a specific key to one environment or for
-testing. `env_vars` are encrypted at rest and never echoed back in API responses.
-See [Core Concepts → Environments](concepts.md#environments) for the full shape.
+`env_vars` on an environment are also sourced into the session. `secret_env_vars` land
+last, so explicit per-run BYOK values override reusable environment configuration.
+Environment env var values are never echoed back in API responses. See
+[Core Concepts → Environments](concepts.md#environments) for the full shape.
 
-If the user has no credential configured for the agent's provider, and no attached
-environment supplies the expected env var either, the CLI will fail on startup and
-the session will transition to `failed`.
+If neither `secret_env_vars` nor the attached environment supplies the expected env var,
+the runtime CLI fails on startup and the session transitions to `failed`.
 
 ## Per-runtime notes
 
@@ -60,10 +58,10 @@ on every subsequent turn — more reliable than `--continue` in non-interactive 
 
 #### OAuth auth variant
 
-The `claude` runtime also supports Claude Pro/Max OAuth tokens. Register a
-`runtime_token:claude-oauth` credential for a user and AoD will export
-`CLAUDE_CODE_OAUTH_TOKEN` instead of `ANTHROPIC_API_KEY`. Everything else — models,
-resume semantics, output format — is identical.
+The `claude` runtime also supports Claude Pro/Max OAuth tokens. Supply
+`CLAUDE_CODE_OAUTH_TOKEN` in session `secret_env_vars` instead of
+`ANTHROPIC_API_KEY`. Everything else — models, resume semantics, output format —
+is identical.
 
 ### `codex`
 

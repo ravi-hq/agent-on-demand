@@ -28,7 +28,6 @@ from agent_on_demand.models import (
     AgentSessionLog,
     APIKey,
     SessionTurn,
-    UserCredential,
 )
 from agent_on_demand.session_service.errors import NoBackendCredentialsError
 from agent_on_demand.session_service.tasks import _provision_session_inner
@@ -46,9 +45,6 @@ def user(db, settings):
     settings.SPRITES_API_KEY = "fake-sprites"
     u = User.objects.create_user(username="provtest", password="x")
     APIKey.create_key(u, "k")
-    cred = UserCredential(user=u, kind="provider:anthropic")
-    cred.set_value("fake")
-    cred.save()
     return u
 
 

@@ -46,6 +46,19 @@ def test_create_returns_ack_shape(client, server):
     assert ack.status == "pending"
 
 
+def test_create_forwards_secret_env_vars(client, server):
+    ack_id = str(uuid4())
+    server.json("POST", "/sessions", 202, {"id": ack_id, "status": "pending"})
+
+    client.sessions.create(
+        agent_id=uuid4(),
+        prompt="hi",
+        secret_env_vars={"ANTHROPIC_API_KEY": "sk-ant-secret"},
+    )
+
+    assert server.requests[0].body["secret_env_vars"] == {"ANTHROPIC_API_KEY": "sk-ant-secret"}
+
+
 def test_create_rate_limited_raises_with_limit_active(client, server):
     server.json(
         "POST",

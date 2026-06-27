@@ -4,8 +4,6 @@ import secrets
 from django.conf import settings
 from django.db import models
 
-from agent_on_demand.crypto import decrypt, encrypt
-
 
 class APIKey(models.Model):
     user = models.ForeignKey(
@@ -44,45 +42,3 @@ class APIKey(models.Model):
         )
         instance.save()
         return instance, raw_key
-
-
-CREDENTIAL_ENV_VAR: dict[str, str] = {
-    "provider:anthropic": "ANTHROPIC_API_KEY",
-    "provider:openai": "OPENAI_API_KEY",
-    "provider:google": "GEMINI_API_KEY",
-    "runtime_token:claude-oauth": "CLAUDE_CODE_OAUTH_TOKEN",
-}
-
-
-class UserCredential(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="credentials"
-    )
-    kind = models.CharField(
-        max_length=64
-    )  # e.g. "provider:anthropic", "runtime_token:claude-oauth"
-    value_encrypted = models.BinaryField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = "user_credentials"
-        constraints = [
-            models.UniqueConstraint(fields=["user", "kind"], name="unique_user_credential_kind"),
-        ]
-
-    def __str__(self):
-        return f"{self.user} — {self.kind}"
-
-    def set_value(self, raw_value: str):
-        self.value_encrypted = encrypt(raw_value)
-
-    def get_value(self) -> str:
-        return decrypt(bytes(self.value_encrypted))
-
-    @classmethod
-    def get_value_for(cls, user, kind: str) -> str | None:
-        try:
-            return cls.objects.get(user=user, kind=kind).get_value()
-        except cls.DoesNotExist:
-            return None

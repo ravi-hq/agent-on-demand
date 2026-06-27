@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from django.conf import settings
@@ -74,6 +75,33 @@ class SessionResource(models.Model):
         if not self.encrypted_token:
             return None
         return decrypt(bytes(self.encrypted_token))
+
+
+class SessionSecretEnvVars(models.Model):
+    """Encrypted session-scoped environment variables supplied by trusted callers."""
+
+    session = models.OneToOneField(
+        AgentSession, on_delete=models.CASCADE, related_name="secret_env_vars"
+    )
+    encrypted_env_vars = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "session_secret_env_vars"
+
+    def __str__(self):
+        return f"secret env vars for {self.session_id}"
+
+    def set_env_vars(self, env_vars: dict[str, str]):
+        self.encrypted_env_vars = encrypt(
+            json.dumps(env_vars, sort_keys=True, separators=(",", ":"))
+        )
+
+    def get_env_vars(self) -> dict[str, str]:
+        value = json.loads(decrypt(bytes(self.encrypted_env_vars)))
+        if not isinstance(value, dict):
+            raise ValueError("Session secret env vars decrypted to a non-object value")
+        return {str(k): str(v) for k, v in value.items()}
 
 
 class SessionTurn(models.Model):

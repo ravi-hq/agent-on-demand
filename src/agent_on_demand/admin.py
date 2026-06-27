@@ -1,4 +1,3 @@
-from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
@@ -12,10 +11,8 @@ from agent_on_demand.models import (
     AgentSessionLog,
     Environment,
     EnvironmentVersion,
-    UserCredential,
     UserQuota,
 )
-from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR
 from agent_on_demand.session_service.backends import BackendClient, BackendError
 
 
@@ -24,13 +21,6 @@ class APIKeyInline(admin.TabularInline):
     extra = 0
     fields = ("key_prefix", "name", "is_active", "created_at", "expires_at")
     readonly_fields = ("key_prefix", "created_at")
-
-
-class UserCredentialInline(admin.TabularInline):
-    model = UserCredential
-    extra = 0
-    fields = ("kind", "created_at", "updated_at")
-    readonly_fields = ("created_at", "updated_at")
 
 
 class UserQuotaInline(admin.StackedInline):
@@ -47,7 +37,6 @@ admin.site.unregister(User)
 class UserAdmin(BaseUserAdmin):
     inlines = list(BaseUserAdmin.inlines) + [
         APIKeyInline,
-        UserCredentialInline,
         UserQuotaInline,
     ]
 
@@ -80,48 +69,6 @@ class APIKeyAdmin(admin.ModelAdmin):
             )
         else:
             super().save_model(request, obj, form, change)
-
-
-class UserCredentialForm(forms.ModelForm):
-    kind = forms.ChoiceField(
-        choices=[(k, k) for k in CREDENTIAL_ENV_VAR],
-        help_text="Credential kind (e.g. provider:anthropic). Determines the "
-        "env var that gets exported on Sprite startup.",
-    )
-    value = forms.CharField(
-        widget=forms.PasswordInput(render_value=True),
-        help_text="The credential value. Stored encrypted.",
-    )
-
-    class Meta:
-        model = UserCredential
-        fields = ("user", "kind", "value")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk:
-            self.fields["value"].initial = self.instance.get_value()
-
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.set_value(self.cleaned_data["value"])
-        if commit:
-            instance.save()
-        return instance
-
-
-@admin.register(UserCredential)
-class UserCredentialAdmin(admin.ModelAdmin):
-    form = UserCredentialForm
-    list_display = ("user", "kind", "created_at", "updated_at")
-    list_filter = ("kind",)
-    search_fields = ("user__email", "kind")
-    readonly_fields = ("created_at", "updated_at")
-
-    def get_fields(self, request, obj=None):
-        if obj is None:
-            return ("user", "kind", "value")
-        return ("user", "kind", "value", "created_at", "updated_at")
 
 
 class EnvironmentVersionInline(admin.TabularInline):

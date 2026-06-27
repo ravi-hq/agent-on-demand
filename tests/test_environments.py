@@ -12,7 +12,6 @@ from agent_on_demand.models import (
     APIKey,
     Environment,
     EnvironmentVersion,
-    UserCredential,
 )
 
 
@@ -43,10 +42,7 @@ def sprites_key(settings):
 
 @pytest.fixture
 def runtime_key(user, sprites_key):
-    cred = UserCredential(user=user, kind="provider:anthropic")
-    cred.set_value("fake-anthropic-key")
-    cred.save()
-    return cred
+    return {"ANTHROPIC_API_KEY": "fake-anthropic-key"}
 
 
 @pytest.fixture
@@ -148,8 +144,8 @@ class TestProvisioningStages:
         )
         assert resp.status_code == 202
         env_file = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
-        # API key is first, then alphabetical env vars
-        assert "ANTHROPIC_API_KEY=" in env_file
+        # Provider keys are only injected through session-scoped secret_env_vars.
+        assert "ANTHROPIC_API_KEY=" not in env_file
         assert "DATABASE_URL=" in env_file
         assert "DEBUG=" in env_file
 

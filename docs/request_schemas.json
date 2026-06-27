@@ -461,6 +461,14 @@
         "title": "Resources",
         "type": "array"
       },
+      "secret_env_vars": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "description": "Session-scoped secret environment variables. Values are encrypted at rest and never returned.",
+        "title": "Secret Env Vars",
+        "type": "object"
+      },
       "timeout": {
         "default": 600,
         "description": "Max seconds",

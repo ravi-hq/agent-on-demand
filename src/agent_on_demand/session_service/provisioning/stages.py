@@ -92,19 +92,11 @@ def write_env_file(handle: SessionHandle, spec: SessionSpec, session_id: str | N
     script). The file is sourced (with `set -a`) by the per-turn dispatcher,
     so every line must be a valid KEY=value shell assignment.
 
-    Precedence: user credentials first (so their env-var names are mapped
-    from `CREDENTIAL_ENV_VAR`), then any runtime-contributed static env
-    (e.g. Claude's Honeycomb header — kept here rather than in the per-turn
-    argv shim so the API key never appears in command logs), then the
-    session metadata, then any Environment.env_vars last — per-environment
-    overrides win."""
-    from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR, UserCredential
-
+    Precedence: runtime-contributed static env first (e.g. Claude's Honeycomb
+    header — kept here rather than in the per-turn argv shim so the API key
+    never appears in command logs), then session metadata, Environment.env_vars,
+    and session-scoped secret_env_vars from trusted callers."""
     credentials: list[tuple[str, str]] = []
-    for cred in UserCredential.objects.filter(user=spec.user):
-        env_name = CREDENTIAL_ENV_VAR.get(cred.kind)
-        if env_name:
-            credentials.append((env_name, cred.get_value()))
     runtime_static_env = spec.runtime.static_env(spec)
     body = build_env_file_body(spec, credentials, runtime_static_env)
     with stage_timer(session_id, STAGE_ENV_FILE):

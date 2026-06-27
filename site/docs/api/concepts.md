@@ -19,7 +19,7 @@ Agents persist across sessions. You can run hundreds of sessions from a single a
 An **environment** describes the Sprite sandbox a session runs in:
 
 - `packages` — software to install (`apt`, `pip`, `npm`, etc.).
-- `env_vars` — environment variables to export (encrypted at rest, never returned in responses).
+- `env_vars` — reusable environment variables to export; values are never returned in responses.
 - `setup_script` — a bash script to run after packages are installed.
 - `networking` — `unrestricted` (open) or `limited` (DNS allow-list).
 
