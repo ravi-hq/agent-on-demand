@@ -59,8 +59,8 @@ def agent(user):
         name="Test Agent",
         description="A test agent",
         system="You are a helpful assistant.",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         skills=[SAMPLE_SKILL],
         metadata={"team": "platform"},
         version=1,
@@ -71,8 +71,8 @@ def agent(user):
         name=a.name,
         description=a.description,
         system=a.system,
+        provider=a.provider,
         model=a.model,
-        runtime=a.runtime,
         skills=a.skills,
         metadata=a.metadata,
     )
@@ -89,8 +89,8 @@ def test_create_agent(client: Client, auth_headers):
         data=json.dumps(
             {
                 "name": "My Agent",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "system": "You are helpful.",
                 "description": "Does things",
                 "skills": [SAMPLE_SKILL],
@@ -103,8 +103,8 @@ def test_create_agent(client: Client, auth_headers):
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "My Agent"
-    assert data["model"] == "anthropic/claude-sonnet-4-6"
-    assert data["runtime"] == "claude"
+    assert data["provider"] == "anthropic"
+    assert data["model"] == "claude-sonnet-4-6"
     assert data["system"] == "You are helpful."
     assert data["description"] == "Does things"
     assert data["skills"] == [SAMPLE_SKILL]
@@ -121,9 +121,7 @@ def test_create_agent(client: Client, auth_headers):
 def test_create_agent_minimal(client: Client, auth_headers):
     resp = client.post(
         "/agents",
-        data=json.dumps(
-            {"name": "Minimal", "model": "anthropic/claude-sonnet-4-6", "runtime": "claude"}
-        ),
+        data=json.dumps({"name": "Minimal", "provider": "anthropic", "model": "claude-sonnet-4-6"}),
         content_type="application/json",
         **auth_headers,
     )
@@ -135,139 +133,67 @@ def test_create_agent_minimal(client: Client, auth_headers):
 
 
 @pytest.mark.django_db
-def test_create_agent_invalid_model(client: Client, auth_headers):
+def test_create_agent_accepts_free_form_model(client: Client, auth_headers):
     resp = client.post(
         "/agents",
-        data=json.dumps({"name": "Bad", "model": "not-a-model", "runtime": "claude"}),
+        data=json.dumps({"name": "Future", "provider": "openai", "model": "o9-preview"}),
+        content_type="application/json",
+        **auth_headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["provider"] == "openai"
+    assert data["model"] == "o9-preview"
+
+
+@pytest.mark.django_db
+def test_create_agent_rejects_blank_model(client: Client, auth_headers):
+    resp = client.post(
+        "/agents",
+        data=json.dumps({"name": "Bad", "provider": "anthropic", "model": "  "}),
         content_type="application/json",
         **auth_headers,
     )
     assert resp.status_code == 422
-    assert "Unknown model" in str(resp.json()["detail"])
+    assert "Model must be a non-empty string" in str(resp.json()["detail"])
 
 
 @pytest.mark.django_db
-def test_create_agent_invalid_runtime(client: Client, auth_headers):
-    resp = client.post(
-        "/agents",
-        data=json.dumps({"name": "Bad", "model": "anthropic/claude-sonnet-4-6", "runtime": "nope"}),
-        content_type="application/json",
-        **auth_headers,
-    )
-    assert resp.status_code == 400
-    assert "Unknown runtime" in resp.json()["detail"]
-
-
-@pytest.mark.django_db
-def test_create_agent_rejects_runtime_outside_model_runtimes_allowlist(
-    client: Client, auth_headers, mocker
-):
-    """`ModelDef.runtimes` is an optional allowlist. When set, only those
-    runtimes can serve the model — even if the model's provider is in
-    the runtime's providers set. The current catalog has all
-    `runtimes=None`, so the branch never fires from real config — but
-    the framework hook exists for future per-model runtime restrictions
-    (e.g. an OpenAI model that only works under codex, not gemini).
-
-    Pin the rejection by patching a single MODELS entry to constrain
-    its `runtimes` to a runtime that doesn't match the request."""
-    from agent_on_demand.models_catalog import MODELS, ModelDef
-    from agent_on_demand.views import agents as agents_views
-
-    constrained = ModelDef(
-        id="anthropic/claude-sonnet-4-6",
-        provider="anthropic",
-        runtimes=frozenset({"codex"}),  # excludes claude
-    )
-    patched = dict(MODELS)
-    patched["anthropic/claude-sonnet-4-6"] = constrained
-    mocker.patch.object(agents_views, "MODELS", patched)
-
+def test_create_agent_normalizes_matching_provider_prefix(client: Client, auth_headers):
     resp = client.post(
         "/agents",
         data=json.dumps(
             {
-                "name": "Bad",
+                "name": "Prefixed",
+                "provider": "anthropic",
                 "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
             }
         ),
         content_type="application/json",
         **auth_headers,
     )
-    assert resp.status_code == 422
-    # `detail` is a plain str on this branch (the view returns
-    # JsonResponse({"detail": compat_err}) where compat_err is the message
-    # string from _check_runtime_model_compat). The Pydantic-error path
-    # returns a list, but that's a different branch.
-    assert (
-        resp.json()["detail"] == "Model anthropic/claude-sonnet-4-6 not supported on runtime claude"
-    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["provider"] == "anthropic"
+    assert data["model"] == "claude-sonnet-4-6"
 
 
 @pytest.mark.django_db
-def test_update_agent_rejects_runtime_outside_model_runtimes_allowlist(
-    client: Client, auth_headers, user, mocker
-):
-    """Mirror of the create-path test for `PUT /agents/{id}`. The update
-    handler also calls `_check_runtime_model_compat` (with the merged
-    effective runtime+model), so the `runtimes` allowlist must reject
-    an update that flips the agent into an out-of-allowlist runtime —
-    same contract, separate call site. Without this test, a refactor
-    that drops the compat call from the update handler would slip
-    through (the create test would still cover the line, leaving the
-    update path silently regressed)."""
-    from agent_on_demand.models_catalog import MODELS, ModelDef
-    from agent_on_demand.views import agents as agents_views
-
-    constrained = ModelDef(
-        id="anthropic/claude-sonnet-4-6",
-        provider="anthropic",
-        runtimes=frozenset({"codex"}),  # excludes claude
-    )
-    patched = dict(MODELS)
-    patched["anthropic/claude-sonnet-4-6"] = constrained
-    mocker.patch.object(agents_views, "MODELS", patched)
-
-    # Seed an agent with a model the patch will constrain. Use codex
-    # initially so creation is allowed; the update flips runtime to
-    # claude, which is no longer in the allowlist.
-    agent = Agent.objects.create(
-        user=user,
-        name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="codex",
-        version=1,
-    )
-    resp = client.put(
-        f"/agents/{agent.id}",
-        data=json.dumps({"version": 1, "runtime": "claude"}),
-        content_type="application/json",
-        **auth_headers,
-    )
-    assert resp.status_code == 422
-    assert (
-        resp.json()["detail"] == "Model anthropic/claude-sonnet-4-6 not supported on runtime claude"
-    )
-
-
-@pytest.mark.django_db
-def test_create_agent_runtime_model_mismatch(client: Client, auth_headers):
-    """Runtime's providers must include the model's provider."""
+def test_create_agent_rejects_mismatched_provider_prefix(client: Client, auth_headers):
     resp = client.post(
         "/agents",
         data=json.dumps(
             {
                 "name": "Bad",
+                "provider": "anthropic",
                 "model": "openai/gpt-4.1",
-                "runtime": "claude",
             }
         ),
         content_type="application/json",
         **auth_headers,
     )
     assert resp.status_code == 422
-    assert "cannot serve model" in resp.json()["detail"]
+    assert "does not match provider" in resp.json()["detail"]
 
 
 @pytest.mark.django_db
@@ -281,8 +207,8 @@ def test_create_agent_mcp_servers_entry_must_be_object(client: Client, auth_head
         data=json.dumps(
             {
                 "name": "Bad",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "mcp_servers": ["just-a-string"],
             }
         ),
@@ -317,24 +243,24 @@ def test_update_agent_not_found_returns_404(client: Client, auth_headers):
 @pytest.mark.django_db
 def test_update_agent_with_unknown_model_returns_422(client: Client, auth_headers, user):
     """UpdateAgentRequest validates the new model the same way
-    CreateAgentRequest does — an update that flips an agent to a
-    not-in-catalog model must reject up-front, not at next session
-    create time."""
+    CreateAgentRequest does — matching provider prefixes are accepted
+    and normalized before persistence."""
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = client.put(
         f"/agents/{agent.id}",
-        data=json.dumps({"version": 1, "model": "unknown/model-id"}),
+        data=json.dumps({"version": 1, "model": "anthropic/claude-opus-latest"}),
         content_type="application/json",
         **auth_headers,
     )
-    assert resp.status_code == 422
-    assert "Unknown model" in str(resp.json()["detail"])
+    assert resp.status_code == 200
+    assert resp.json()["provider"] == "anthropic"
+    assert resp.json()["model"] == "claude-opus-latest"
 
 
 @pytest.mark.django_db
@@ -377,8 +303,8 @@ def test_list_agents_other_user_not_visible(client: Client, auth_headers):
     Agent.objects.create(
         user=other,
         name="Other's Agent",
+        provider="anthropic",
         model="x",
-        runtime="claude",
         version=1,
     )
     resp = client.get("/agents", **auth_headers)
@@ -524,8 +450,8 @@ def test_list_versions(client: Client, auth_headers, agent):
         version=2,
         name=agent.name,
         system="v2 prompt",
+        provider=agent.provider,
         model=agent.model,
-        runtime=agent.runtime,
         skills=agent.skills,
         metadata=agent.metadata,
     )
@@ -649,24 +575,22 @@ def test_update_agent_invalid_json(client: Client, auth_headers, agent):
 
 
 @pytest.mark.django_db
-def test_update_agent_unknown_runtime(client: Client, auth_headers, agent):
-    """A PUT that names a runtime not in RUNTIMES must 400 with the list of
-    known runtimes — same contract as POST /agents."""
+def test_update_agent_unknown_provider(client: Client, auth_headers, agent):
+    """A PUT that names an unsupported public provider must reject before
+    mutating the agent."""
     resp = client.put(
         f"/agents/{agent.id}",
-        data=json.dumps({"version": agent.version, "runtime": "nonexistent-runtime"}),
+        data=json.dumps({"version": agent.version, "provider": "unknown-provider"}),
         content_type="application/json",
         **auth_headers,
     )
-    assert resp.status_code == 400
-    assert "Unknown runtime" in resp.json()["detail"]
+    assert resp.status_code == 422
+    assert "Unknown provider" in resp.json()["detail"]
 
 
 @pytest.mark.django_db
-def test_update_agent_runtime_model_incompat(client: Client, auth_headers, agent):
-    """Switching to a runtime whose providers don't include the agent's
-    current model must 422 — otherwise sessions would 500 at provision time."""
-    # claude runtime can't serve openai/* models.
+def test_update_agent_rejects_mismatched_provider_prefix(client: Client, auth_headers, agent):
+    """A prefixed model must match the selected public provider."""
     resp = client.put(
         f"/agents/{agent.id}",
         data=json.dumps({"version": agent.version, "model": "openai/gpt-4.1"}),
@@ -674,7 +598,7 @@ def test_update_agent_runtime_model_incompat(client: Client, auth_headers, agent
         **auth_headers,
     )
     assert resp.status_code == 422
-    assert "cannot serve" in resp.json()["detail"]
+    assert "does not match provider" in resp.json()["detail"]
 
 
 # --- Environment edge cases on create + update ---
@@ -687,8 +611,8 @@ def test_create_agent_environment_not_found(client: Client, auth_headers):
         data=json.dumps(
             {
                 "name": "x",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "environment_id": str(uuid.uuid4()),
             }
         ),
@@ -714,8 +638,8 @@ def test_create_agent_environment_archived(client: Client, auth_headers, user):
         data=json.dumps(
             {
                 "name": "x",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "environment_id": str(env.id),
             }
         ),

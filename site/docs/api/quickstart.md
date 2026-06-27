@@ -29,7 +29,7 @@ Choose a deployment:
 
 ## Step 1 — Create an agent
 
-An agent is a reusable template. The minimum required fields are `name`, `model`, and `runtime`.
+An agent is a reusable template. The minimum required fields are `name`, `provider`, and `model`.
 
 === "curl"
 
@@ -39,8 +39,8 @@ An agent is a reusable template. The minimum required fields are `name`, `model`
       -H "Content-Type: application/json" \
       -d '{
         "name": "hello",
-        "model": "anthropic/claude-sonnet-4-6",
-        "runtime": "claude"
+        "provider": "anthropic",
+        "model": "claude-sonnet"
       }'
     ```
 
@@ -52,8 +52,8 @@ An agent is a reusable template. The minimum required fields are `name`, `model`
     client = Client()  # reads AOD_API_URL + AOD_API_TOKEN
     agent = client.agents.create(
         name="hello",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet",
     )
     print(agent.id)
     ```
@@ -65,8 +65,8 @@ Response (`201 Created`):
   "id": "<agent-uuid>",
   "type": "agent",
   "name": "hello",
-  "model": "anthropic/claude-sonnet-4-6",
-  "runtime": "claude",
+  "provider": "anthropic",
+  "model": "claude-sonnet",
   "system": null,
   "description": null,
   "environment_id": null,
@@ -138,7 +138,7 @@ Connect to the SSE stream to receive agent output in real time.
     You'll see a sequence of `data:` lines:
 
     ```
-    data: {"type":"start","runtime":"claude","session_id":"<session-uuid>"}
+    data: {"type":"start","provider":"anthropic","session_id":"<session-uuid>"}
 
     data: {"type":"turn_start","id":1,"turn":1}
 
@@ -176,7 +176,7 @@ The stream closes after the terminal event (`exit`, `error`, or `terminated`). R
 
     # Create agent
     AGENT_ID=$(curl -s -X POST "$BASE/agents" -H "$AUTH" -H "$JSON" \
-      -d '{"name":"demo","model":"anthropic/claude-sonnet-4-6","runtime":"claude"}' \
+      -d '{"name":"demo","provider":"anthropic","model":"claude-sonnet"}' \
       | jq -r .id)
 
     # Create session
@@ -198,7 +198,7 @@ The stream closes after the terminal event (`exit`, `error`, or `terminated`). R
 
     with Client() as client:
         agent = client.agents.create(
-            name="demo", model="anthropic/claude-sonnet-4-6", runtime="claude"
+            name="demo", provider="anthropic", model="claude-sonnet"
         )
         ack = client.sessions.create(
             agent_id=agent.id, prompt="Say hello.", timeout=120

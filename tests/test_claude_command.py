@@ -33,7 +33,7 @@ from agent_on_demand.runtimes.claude_command import build_claude_command
 
 
 def _spec(runtime_session_id=None):
-    return SimpleNamespace(runtime_session_id=runtime_session_id)
+    return SimpleNamespace(runtime_session_id=runtime_session_id, model="claude-sonnet-4-6")
 
 
 # ---------- argv prologue (flags pinned in exact order) ----------
@@ -69,13 +69,15 @@ def test_prologue_first_six_elements_exact():
     regardless of mode or session id. Distinguishes a mutant that
     shuffles or drops any single flag."""
     argv = build_claude_command(_spec("s"), "run")
-    assert argv[:6] == [
+    assert argv[:8] == [
         "claude",
         "--dangerously-skip-permissions",
         "--print",
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
     ]
 
 
@@ -85,7 +87,7 @@ def test_prologue_identical_across_modes():
     caught."""
     run_argv = build_claude_command(_spec("s"), "run")
     cont_argv = build_claude_command(_spec("s"), "continue")
-    assert run_argv[:6] == cont_argv[:6]
+    assert run_argv[:8] == cont_argv[:8]
 
 
 # ---------- mode branch: --resume vs --session-id ----------
@@ -196,6 +198,8 @@ def test_full_argv_shape_run_mode():
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
         "--session-id",
         "sess-xyz",
     ]
@@ -212,6 +216,8 @@ def test_full_argv_shape_continue_mode():
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
         "--resume",
         "sess-xyz",
     ]
@@ -228,14 +234,23 @@ def test_full_argv_shape_run_mode_with_none_session_id():
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
         "--session-id",
         "",
     ]
 
 
-def test_argv_length_is_eight():
-    """Total argv length is always 8 — pin so a mutant that drops or
+def test_argv_length_is_ten():
+    """Total argv length is always 10 — pin so a mutant that drops or
     duplicates an element is caught."""
-    assert len(build_claude_command(_spec("s"), "run")) == 8
-    assert len(build_claude_command(_spec("s"), "continue")) == 8
-    assert len(build_claude_command(_spec(None), "run")) == 8
+    assert len(build_claude_command(_spec("s"), "run")) == 10
+    assert len(build_claude_command(_spec("s"), "continue")) == 10
+    assert len(build_claude_command(_spec(None), "run")) == 10
+
+
+def test_model_is_forwarded_verbatim():
+    argv = build_claude_command(
+        SimpleNamespace(runtime_session_id="s", model="custom-model"), "run"
+    )
+    assert argv[argv.index("--model") + 1] == "custom-model"

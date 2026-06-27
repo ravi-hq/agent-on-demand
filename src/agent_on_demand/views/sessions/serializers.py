@@ -1,4 +1,14 @@
 from agent_on_demand.models import AgentSession, SessionTurn
+from agent_on_demand.providers import provider_for_runtime
+
+
+def _session_provider(session: AgentSession) -> str:
+    if session.agent_id and session.agent:
+        return session.agent.provider
+    try:
+        return provider_for_runtime(session.runtime)
+    except ValueError:
+        return session.runtime
 
 
 def _serialize_resources(session: AgentSession) -> list[dict]:
@@ -19,7 +29,7 @@ def _serialize_session(session: AgentSession) -> dict:
         "id": str(session.id),
         "agent_id": str(session.agent_id) if session.agent_id else None,
         "environment_id": str(session.environment_id) if session.environment_id else None,
-        "runtime": session.runtime,
+        "provider": _session_provider(session),
         "status": session.status,
         "exit_code": session.exit_code,
         "created_at": session.created_at.isoformat(),

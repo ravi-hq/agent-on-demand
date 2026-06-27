@@ -55,8 +55,8 @@ class TestCreateAgentWithSkills:
             data=json.dumps(
                 {
                     "name": "Skill Agent",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "skills": [_skill()],
                 }
             ),
@@ -74,8 +74,8 @@ class TestCreateAgentWithSkills:
             data=json.dumps(
                 {
                     "name": "Plain",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                 }
             ),
             content_type="application/json",
@@ -93,8 +93,8 @@ class TestSkillsValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "skills": skills,
                 }
             ),
@@ -190,16 +190,16 @@ class TestUpdateAgentSkills:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             version=1,
         )
         AgentVersion.objects.create(
             agent=agent,
             version=1,
             name=agent.name,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
         )
         resp = client.put(
             f"/agents/{agent.id}",
@@ -218,16 +218,16 @@ class TestUpdateAgentSkills:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             version=1,
         )
         AgentVersion.objects.create(
             agent=agent,
             version=1,
             name=agent.name,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
         )
         resp = client.put(
             f"/agents/{agent.id}",
@@ -272,8 +272,8 @@ class TestGithubSkillValidation:
             data=json.dumps(
                 {
                     "name": "GH Agent",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "skills": skills,
                 }
             ),

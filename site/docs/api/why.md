@@ -56,7 +56,7 @@ product.
 
 Imagine if spawning an agent looked exactly like writing a database row.
 
-You define the agent once: model, runtime, system prompt, tools. You hand a
+You define the agent once: provider, model, system prompt, tools. You hand a
 session a prompt. You read the stream. The agent runs in its own sandbox,
 on its own filesystem, with its own keys — and tells you what it did. When
 it's done, it's done. When you need to continue the conversation, the
@@ -74,7 +74,7 @@ company.
 
 Three resources, one HTTP API:
 
-- **[Agents](concepts.md#agents)** are the recipe — runtime, model, system
+- **[Agents](concepts.md#agents)** are the recipe — provider, model, system
   prompt, MCP servers, skills. Define once, version with optimistic
   concurrency, share across a million sessions.
 - **[Environments](concepts.md#environments)** are the sandbox — packages,

@@ -5,8 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
 from agent_on_demand.models import Environment
-from agent_on_demand.models_catalog import MODELS
-from agent_on_demand.runtimes import RUNTIMES
+from agent_on_demand.providers import SUPPORTED_PROVIDERS
 from agent_on_demand.validation.environment_validation import (
     validate_env_vars,
     validate_networking,
@@ -31,13 +30,22 @@ class APIKeyCreateForm(forms.Form):
 
 class AgentCreateForm(forms.Form):
     name = forms.CharField(max_length=200, label="Name")
-    model = forms.ChoiceField(
-        choices=[(model, model) for model in sorted(MODELS)],
-        label="Model",
+    provider = forms.ChoiceField(
+        choices=[(provider, provider.title()) for provider in SUPPORTED_PROVIDERS],
+        label="Provider",
     )
-    runtime = forms.ChoiceField(
-        choices=[(runtime, runtime) for runtime in sorted(RUNTIMES)],
-        label="Runtime",
+    model = forms.CharField(
+        max_length=100,
+        label="Model",
+        initial="claude-sonnet",
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "claude-sonnet or claude-opus",
+                "title": (
+                    "Use the provider's model alias/name only. Do not include a provider/ prefix."
+                ),
+            }
+        ),
     )
     environment_id = forms.CharField(
         required=False,

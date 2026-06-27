@@ -5,7 +5,7 @@
     <div>
       <span class="console-kicker"><a href="{% url 'ui-agents' %}">Agents</a></span>
       <h1>{{ agent.name }}</h1>
-      <p>Published agent configuration and runtime attachments.</p>
+      <p>Published agent configuration and provider attachments.</p>
     </div>
     {% if not agent.archived_at %}
       <form method="post" action="{% url 'ui-agent-archive' agent.id %}" class="inline-form">
@@ -36,8 +36,8 @@
   <dl class="kv">
     <dt>ID</dt><dd><code>{{ agent.id }}</code></dd>
     <dt>Version</dt><dd>v{{ agent.version }}</dd>
+    <dt>Provider</dt><dd>{{ agent.provider }}</dd>
     <dt>Model</dt><dd>{{ agent.model }}</dd>
-    <dt>Runtime</dt><dd>{{ agent.runtime }}</dd>
     <dt>Environment</dt>
     <dd>
       {% if agent.environment %}

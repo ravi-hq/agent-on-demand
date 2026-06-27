@@ -78,8 +78,8 @@ def agent(user):
     return Agent.objects.create(
         user=user,
         name="Test Agent",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
 
@@ -920,8 +920,8 @@ class TestSessionEnvironmentIntegration:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             environment=environment,
             version=1,
         )
@@ -949,8 +949,8 @@ class TestSessionEnvironmentIntegration:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             environment=environment,
             version=1,
         )
@@ -1053,8 +1053,8 @@ class TestAgentEnvironmentIntegration:
             data=json.dumps(
                 {
                     "name": "My Agent",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "environment_id": str(environment.id),
                 }
             ),
@@ -1070,8 +1070,8 @@ class TestAgentEnvironmentIntegration:
             data=json.dumps(
                 {
                     "name": "My Agent",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                 }
             ),
             content_type="application/json",
@@ -1084,16 +1084,16 @@ class TestAgentEnvironmentIntegration:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             version=1,
         )
         AgentVersion.objects.create(
             agent=agent,
             version=1,
             name=agent.name,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
         )
 
         resp = client.put(

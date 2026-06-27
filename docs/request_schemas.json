@@ -38,9 +38,9 @@
         "title": "Name",
         "type": "string"
       },
-      "runtime": {
+      "provider": {
         "maxLength": 32,
-        "title": "Runtime",
+        "title": "Provider",
         "type": "string"
       },
       "skills": {
@@ -56,8 +56,8 @@
     },
     "required": [
       "name",
-      "model",
-      "runtime"
+      "provider",
+      "model"
     ],
     "title": "CreateAgentRequest",
     "type": "object"
@@ -138,7 +138,7 @@
         "default": null,
         "title": "Name"
       },
-      "runtime": {
+      "provider": {
         "anyOf": [
           {
             "type": "string"
@@ -148,7 +148,7 @@
           }
         ],
         "default": null,
-        "title": "Runtime"
+        "title": "Provider"
       },
       "skills": {
         "anyOf": [

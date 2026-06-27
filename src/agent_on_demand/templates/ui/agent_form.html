@@ -5,7 +5,7 @@
     <div>
       <span class="console-kicker"><a href="{% url 'ui-agents' %}">Agents</a></span>
       <h1>Create agent</h1>
-      <p>Define the runtime, model, and system prompt this agent will use for sessions.</p>
+      <p>Define the provider, model, and system prompt this agent will use for sessions.</p>
     </div>
   </header>
 
@@ -25,13 +25,13 @@
         {{ form.name }}
         {{ form.name.errors }}
 
+        <label for="{{ form.provider.id_for_label }}">Provider</label>
+        {{ form.provider }}
+        {{ form.provider.errors }}
+
         <label for="{{ form.model.id_for_label }}">Model</label>
         {{ form.model }}
         {{ form.model.errors }}
-
-        <label for="{{ form.runtime.id_for_label }}">Runtime</label>
-        {{ form.runtime }}
-        {{ form.runtime.errors }}
 
         <label for="{{ form.environment_id.id_for_label }}">Environment</label>
         {{ form.environment_id }}
@@ -49,4 +49,56 @@
       </div>
     </form>
   </section>
+  <script>
+    (() => {
+      const provider = document.getElementById("{{ form.provider.id_for_label }}");
+      const model = document.getElementById("{{ form.model.id_for_label }}");
+      if (!provider || !model) return;
+
+      const hints = {
+        anthropic: {
+          model: "claude-sonnet",
+          placeholder: "claude-sonnet or claude-opus",
+          help: "Use the Claude model alias/name, e.g. claude-sonnet or claude-opus. Do not include anthropic/.",
+          legacy: ["claude-sonnet-4-6", "anthropic/claude-sonnet-4-6"],
+        },
+        openai: {
+          model: "gpt-4o",
+          placeholder: "gpt-4o or o3",
+          help: "Use the OpenAI model name, e.g. gpt-4o or o3. Do not include openai/.",
+          legacy: ["gpt-4.1", "openai/gpt-4.1"],
+        },
+      };
+
+      function hintFor(value) {
+        return hints[value] || {
+          model: "model-name",
+          placeholder: "model-name",
+          help: "Use the provider's model name only. Do not include a provider/ prefix.",
+          legacy: [],
+        };
+      }
+
+      function defaultish(providerValue, modelValue) {
+        const trimmed = modelValue.trim();
+        const hint = hintFor(providerValue);
+        return trimmed === "" || trimmed === hint.model || hint.legacy.includes(trimmed);
+      }
+
+      provider.addEventListener("change", () => {
+        const next = hintFor(provider.value);
+        if (defaultish(provider.dataset.previousValue || "anthropic", model.value)) {
+          model.value = next.model;
+        }
+        model.placeholder = next.placeholder;
+        model.title = next.help;
+        provider.dataset.previousValue = provider.value;
+      });
+
+      provider.dataset.previousValue = provider.value;
+      const initial = hintFor(provider.value);
+      model.placeholder = initial.placeholder;
+      model.title = initial.help;
+    })();
+  </script>
 {% endblock %}

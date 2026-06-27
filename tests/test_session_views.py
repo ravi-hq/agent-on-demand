@@ -53,8 +53,8 @@ def agent(user):
     return Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
 
@@ -69,71 +69,16 @@ def test_sessions_collection_rejects_unknown_method(client: Client, auth_headers
 
 
 @pytest.mark.django_db
-def test_create_session_with_unknown_model_returns_422(client, auth_headers, runtime_key, user):
-    """An agent persisted with a model string that's no longer in MODELS
-    (e.g. catalog removal) must reject session creation up-front rather
-    than silently failing later at provision time. Pin the contract so a
-    refactor that elided the check leaves this stops at 422."""
-    bogus_agent = Agent.objects.create(
-        user=user,
-        name="bogus-model",
-        model="unknown/model-id-not-in-catalog",
-        runtime="claude",
-        version=1,
-    )
-    resp = client.post(
-        "/sessions",
-        data=json.dumps({"agent_id": str(bogus_agent.id), "prompt": "hi"}),
-        content_type="application/json",
-        **auth_headers,
-    )
-    assert resp.status_code == 422
-    assert "Unknown model" in resp.json()["detail"]
-
-
-@pytest.mark.django_db
-def test_create_session_with_runtime_provider_mismatch_returns_422(
+def test_create_session_with_provider_no_longer_supported_returns_422(
     client, auth_headers, runtime_key, user
 ):
-    """An agent persisted with a runtime/model whose provider isn't in
-    runtime.providers must reject at session-create. Real failure mode:
-    catalog edits where a model's provider was retroactively changed."""
-    bad_agent = Agent.objects.create(
-        user=user,
-        name="bad",
-        model="openai/gpt-4.1",
-        runtime="claude",  # claude doesn't serve openai/*
-        version=1,
-    )
-    resp = client.post(
-        "/sessions",
-        data=json.dumps({"agent_id": str(bad_agent.id), "prompt": "hi"}),
-        content_type="application/json",
-        **auth_headers,
-    )
-    assert resp.status_code == 422
-    assert "cannot serve" in resp.json()["detail"]
-
-
-@pytest.mark.django_db
-def test_create_session_with_runtime_no_longer_in_registry_returns_400(
-    client, auth_headers, runtime_key, user
-):
-    """Agent rows persist forever; the runtime registry can change between
-    deploys. An agent created when runtime "ghost" was valid and persisted
-    in the DB after "ghost" was removed from RUNTIMES must reject session
-    creation with a 400 listing the current valid runtimes — not a 500
-    from a downstream KeyError on RUNTIMES[runtime].
-
-    Reaches the branch by inserting an agent directly via the ORM with a
-    runtime string the API validator would now reject. This is the only
-    way that branch is reachable, since the create-agent path also rejects
-    unknown runtimes."""
+    """Agent rows persist forever; the provider mapping can change between
+    deploys. A stale row should reject cleanly, not 500."""
     ghost_agent = Agent.objects.create(
         user=user,
         name="ghost",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="ghost-runtime",
+        provider="ghost-provider",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = client.post(
@@ -142,10 +87,8 @@ def test_create_session_with_runtime_no_longer_in_registry_returns_400(
         content_type="application/json",
         **auth_headers,
     )
-    assert resp.status_code == 400
-    detail = resp.json()["detail"]
-    assert "Unknown runtime: ghost-runtime" in detail
-    assert "Must be one of:" in detail
+    assert resp.status_code == 422
+    assert "Unknown provider" in resp.json()["detail"]
 
 
 @pytest.mark.django_db

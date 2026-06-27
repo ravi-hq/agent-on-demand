@@ -49,8 +49,8 @@ def test_mcp_server_optional_fields_default(user):
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         mcp_servers=[{"name": "minimal"}],
         version=1,
     )
@@ -77,8 +77,8 @@ def test_github_skill_with_name(user):
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         skills=[{"type": "github", "source": "owner/skills-repo", "name": "specific"}],
         version=1,
     )
@@ -100,8 +100,8 @@ def test_github_skill_without_name(user):
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         skills=[{"type": "github", "source": "owner/whole-repo"}],
         version=1,
     )
@@ -123,8 +123,8 @@ def test_inline_skill_default_type(user):
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         skills=[{"name": "web-search", "content": "---\nname: web-search\n---\nbody"}],
         version=1,
     )

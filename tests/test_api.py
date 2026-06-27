@@ -88,8 +88,8 @@ def agent(user):
     return Agent.objects.create(
         user=user,
         name="Test Agent",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
 
@@ -372,7 +372,7 @@ def test_get_session(client: Client, auth_headers, user):
     assert resp.status_code == 200
     data = resp.json()
     assert data["id"] == str(session.id)
-    assert data["runtime"] == "claude"
+    assert data["provider"] == "anthropic"
     assert data["status"] == "running"
     assert data["exit_code"] is None
 
@@ -420,7 +420,7 @@ def test_list_sessions_returns_user_sessions_newest_first(client: Client, auth_h
     assert [s["id"] for s in data] == [str(newer.id), str(older.id)]
 
     first = data[0]
-    assert first["runtime"] == "claude"
+    assert first["provider"] == "anthropic"
     assert first["status"] == "running"
     assert first["exit_code"] is None
     assert "created_at" in first and "updated_at" in first

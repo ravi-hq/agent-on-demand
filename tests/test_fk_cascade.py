@@ -39,7 +39,11 @@ def user(db):
 @pytest.mark.django_db
 def test_deleting_user_cascades_to_agents(user):
     a = Agent.objects.create(
-        user=user, name="A", model="anthropic/claude-sonnet-4-6", runtime="claude", version=1
+        user=user,
+        name="A",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=1,
     )
     user.delete()
     assert not Agent.objects.filter(pk=a.pk).exists()
@@ -69,8 +73,8 @@ def test_deleting_environment_sets_null_on_agent(user):
     a = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         environment=e,
         version=1,
     )
@@ -99,9 +103,13 @@ def test_deleting_agent_cascades_to_versions(user):
     """Version history disappears with the parent — the parent's row is
     the source of truth for 'exists at all'."""
     a = Agent.objects.create(
-        user=user, name="A", model="anthropic/claude-sonnet-4-6", runtime="claude", version=1
+        user=user,
+        name="A",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=1,
     )
-    AgentVersion.objects.create(agent=a, version=1, name=a.name, model=a.model, runtime=a.runtime)
+    AgentVersion.objects.create(agent=a, version=1, name=a.name, provider=a.provider, model=a.model)
     agent_pk = a.pk
     a.delete()
     assert not AgentVersion.objects.filter(agent_id=agent_pk).exists()

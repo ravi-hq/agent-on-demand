@@ -27,7 +27,7 @@ TOKEN=aod_...              # get one at aod.ravi.id after signing up
 AGENT_ID=$(curl -s -X POST "$BASE/agents" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"hello","model":"anthropic/claude-sonnet-4-6","runtime":"claude"}' \
+  -d '{"name":"hello","provider":"anthropic","model":"claude-sonnet"}' \
   | jq -r .id)
 
 # 2. Start a session
@@ -94,25 +94,14 @@ route table. Authentication: `Authorization: Bearer <token>`.
   `DELETE /sessions/{id}/delete`, `GET /sessions/{id}/stream` (SSE),
   `GET /sessions/{id}/turns`
 
-## Runtimes
+## Providers
 
-Model strings are in canonical `provider/model_id` form:
+Agents use `provider` plus a free-form `model` string. Public providers are currently
+`anthropic` and `openai`; matching legacy prefixes like `anthropic/claude-sonnet`
+are accepted and normalized to `provider=anthropic`, `model=claude-sonnet`.
 
-| Runtime    | Vendors                   | Example model strings                                                              |
-| ---------- | ------------------------- | ---------------------------------------------------------------------------------- |
-| `claude`   | Anthropic                 | `anthropic/claude-opus-4-6`, `anthropic/claude-sonnet-4-6`, `anthropic/claude-haiku-4-5` |
-| `codex`    | OpenAI                    | `openai/gpt-4.1`, `openai/o3`, `openai/o4-mini`                                    |
-| `gemini`   | Google                    | `google/gemini-2.5-pro`, `google/gemini-2.5-flash`                                 |
-| `opencode` | Anthropic, OpenAI, Google | any `anthropic/*`, `openai/*`, or `google/*` in the model catalog                  |
-
-The `claude` runtime authenticates via `ANTHROPIC_API_KEY` by default and falls back to
-OAuth when the user has a `runtime_token:claude-oauth` credential registered.
-
-`opencode` is not pre-installed on the Sprite base image — first-session provisioning
-takes 10–30 s longer than the pre-baked runtimes.
-
-Model catalog: `src/agent_on_demand/models_catalog.py`. Runtime implementations:
-`src/agent_on_demand/runtimes/`.
+AOD maps providers to internal execution runtimes at session start. Runtime
+implementations live in `src/agent_on_demand/runtimes/`.
 
 ## Tools
 

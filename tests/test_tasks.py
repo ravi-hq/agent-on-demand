@@ -399,7 +399,11 @@ def provision_user(db, settings):
 
 def _make_pending_session(user):
     agent = Agent.objects.create(
-        user=user, name="a", model="anthropic/claude-sonnet-4-6", runtime="claude", version=1
+        user=user,
+        name="a",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=1,
     )
     session = AgentSession.objects.create(
         user=user,

@@ -12,14 +12,14 @@
   {% if agents %}
     <table>
       <thead>
-        <tr><th>Name</th><th>Model</th><th>Runtime</th><th>Version</th><th>Status</th><th>Created</th></tr>
+        <tr><th>Name</th><th>Provider</th><th>Model</th><th>Version</th><th>Status</th><th>Created</th></tr>
       </thead>
       <tbody>
         {% for a in agents %}
           <tr>
             <td><a href="{% url 'ui-agent-detail' a.id %}">{{ a.name }}</a></td>
+            <td>{{ a.provider }}</td>
             <td>{{ a.model }}</td>
-            <td>{{ a.runtime }}</td>
             <td>v{{ a.version }}</td>
             <td>{% if a.archived_at %}<span class="status-pill muted">archived</span>{% else %}<span class="status-pill">active</span>{% endif %}</td>
             <td>{{ a.created_at|date:"Y-m-d H:i" }}</td>

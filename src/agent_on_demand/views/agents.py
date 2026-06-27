@@ -9,13 +9,11 @@ from pydantic import BaseModel, Field, field_validator
 from agent_on_demand.analytics import capture as posthog_capture
 from agent_on_demand.auth import require_api_key
 from agent_on_demand.models import Agent, AgentVersion, Environment
-from agent_on_demand.models_catalog import MODELS
-from agent_on_demand.runtimes import RUNTIMES
+from agent_on_demand.providers import normalize_provider_model
 from agent_on_demand.validation.mcp_server_validation import (
     validate_mcp_servers as _validate_mcp_servers,
 )
 from agent_on_demand.validation.metadata_merge import merge_metadata
-from agent_on_demand.validation.runtime_model_compat import check_runtime_model_compat
 from agent_on_demand.validation.skill_validation import validate_skills as _validate_skills
 from agent_on_demand.versioning import check_version_match
 from agent_on_demand.views._helpers import parse_request_body
@@ -25,8 +23,8 @@ AGENT_VERSIONED_FIELDS = (
     "name",
     "description",
     "system",
+    "provider",
     "model",
-    "runtime",
     "environment",
     "skills",
     "mcp_servers",
@@ -36,8 +34,8 @@ AGENT_VERSIONED_FIELDS = (
 
 class CreateAgentRequest(BaseModel):
     name: str = Field(max_length=200)
+    provider: str = Field(max_length=32)
     model: str = Field(max_length=100)
-    runtime: str = Field(max_length=32)
     system: str = Field(default="")
     description: str = Field(default="")
     environment_id: str | None = Field(default=None)
@@ -48,8 +46,8 @@ class CreateAgentRequest(BaseModel):
     @field_validator("model")
     @classmethod
     def validate_model(cls, v: str) -> str:
-        if v not in MODELS:
-            raise ValueError(f"Unknown model: {v}. Must be one of: {sorted(MODELS)}")
+        if not v.strip():
+            raise ValueError("Model must be a non-empty string")
         return v
 
     @field_validator("mcp_servers")
@@ -66,8 +64,8 @@ class CreateAgentRequest(BaseModel):
 class UpdateAgentRequest(BaseModel):
     version: int = Field(description="Current version — optimistic concurrency check")
     name: str | None = None
+    provider: str | None = None
     model: str | None = None
-    runtime: str | None = None
     system: str | None = None
     description: str | None = None
     environment_id: str | None = None
@@ -78,8 +76,8 @@ class UpdateAgentRequest(BaseModel):
     @field_validator("model")
     @classmethod
     def validate_model(cls, v: str | None) -> str | None:
-        if v is not None and v not in MODELS:
-            raise ValueError(f"Unknown model: {v}. Must be one of: {sorted(MODELS)}")
+        if v is not None and not v.strip():
+            raise ValueError("Model must be a non-empty string")
         return v
 
     @field_validator("mcp_servers")
@@ -104,8 +102,8 @@ def _serialize_agent(agent: Agent) -> dict:
         "name": agent.name,
         "description": agent.description or None,
         "system": agent.system or None,
+        "provider": agent.provider,
         "model": agent.model,
-        "runtime": agent.runtime,
         "environment_id": str(agent.environment_id) if agent.environment_id else None,
         "skills": agent.skills,
         "mcp_servers": agent.mcp_servers,
@@ -124,8 +122,8 @@ def _serialize_agent_version(av: AgentVersion) -> dict:
         "name": av.name,
         "description": av.description or None,
         "system": av.system or None,
+        "provider": av.provider,
         "model": av.model,
-        "runtime": av.runtime,
         "environment_id": str(av.environment_id) if av.environment_id else None,
         "skills": av.skills,
         "mcp_servers": av.mcp_servers,
@@ -143,8 +141,8 @@ def _snapshot_version(agent: Agent):
         name=agent.name,
         description=agent.description,
         system=agent.system,
+        provider=agent.provider,
         model=agent.model,
-        runtime=agent.runtime,
         environment=agent.environment,
         skills=agent.skills,
         mcp_servers=agent.mcp_servers,
@@ -161,14 +159,10 @@ def agents_list_create(request):
         if err is not None:
             return err
 
-        if req.runtime not in RUNTIMES:
-            return JsonResponse(
-                {"detail": f"Unknown runtime: {req.runtime}. Must be one of: {list(RUNTIMES)}"},
-                status=400,
-            )
-        compat_err = check_runtime_model_compat(RUNTIMES[req.runtime], MODELS[req.model])
-        if compat_err is not None:
-            return JsonResponse({"detail": compat_err}, status=422)
+        try:
+            provider, model = normalize_provider_model(req.provider, req.model)
+        except ValueError as exc:
+            return JsonResponse({"detail": str(exc)}, status=422)
 
         env_obj = None
         if req.environment_id:
@@ -187,8 +181,8 @@ def agents_list_create(request):
                 name=req.name,
                 description=req.description,
                 system=req.system,
-                model=req.model,
-                runtime=req.runtime,
+                provider=provider,
+                model=model,
                 environment=env_obj,
                 skills=req.skills,
                 mcp_servers=req.mcp_servers,
@@ -202,7 +196,7 @@ def agents_list_create(request):
             "agent.created",
             properties={
                 "agent_id": str(agent.id),
-                "runtime": agent.runtime,
+                "provider": agent.provider,
                 "model": agent.model,
                 "has_environment": agent.environment_id is not None,
                 "system_length": len(agent.system or ""),
@@ -240,12 +234,6 @@ def agent_detail(request, agent_id):
         if err is not None:
             return err
 
-        if req.runtime is not None and req.runtime not in RUNTIMES:
-            return JsonResponse(
-                {"detail": f"Unknown runtime: {req.runtime}. Must be one of: {list(RUNTIMES)}"},
-                status=400,
-            )
-
         # Resolve environment before acquiring the row lock (fast 404 path).
         # Use model_fields_set to distinguish "absent from payload" from
         # "explicitly set to null" (which clears the environment).
@@ -276,14 +264,14 @@ def agent_detail(request, agent_id):
             if version_err is not None:
                 return version_err
 
-            effective_runtime = req.runtime or agent.runtime
+            effective_provider = req.provider or agent.provider
             effective_model = req.model or agent.model
-            if effective_runtime in RUNTIMES and effective_model in MODELS:
-                compat_err = check_runtime_model_compat(
-                    RUNTIMES[effective_runtime], MODELS[effective_model]
+            try:
+                effective_provider, effective_model = normalize_provider_model(
+                    effective_provider, effective_model
                 )
-                if compat_err is not None:
-                    return JsonResponse({"detail": compat_err}, status=422)
+            except ValueError as exc:
+                return JsonResponse({"detail": str(exc)}, status=422)
 
             if env_id_provided:
                 if req.environment_id is not None:
@@ -297,14 +285,19 @@ def agent_detail(request, agent_id):
 
             for field in (
                 "name",
+                "provider",
                 "model",
-                "runtime",
                 "system",
                 "description",
                 "skills",
                 "mcp_servers",
             ):
-                value = getattr(req, field)
+                if field == "provider":
+                    value = effective_provider
+                elif field == "model":
+                    value = effective_model
+                else:
+                    value = getattr(req, field)
                 if value is not None and value != getattr(agent, field):
                     setattr(agent, field, value)
                     changed = True
@@ -326,8 +319,8 @@ def agent_detail(request, agent_id):
                         "name",
                         "description",
                         "system",
+                        "provider",
                         "model",
-                        "runtime",
                         "environment_id",
                         "skills",
                         "mcp_servers",
@@ -345,7 +338,7 @@ def agent_detail(request, agent_id):
                 properties={
                     "agent_id": str(agent.id),
                     "version": agent.version,
-                    "runtime": agent.runtime,
+                    "provider": agent.provider,
                     "model": agent.model,
                 },
             )

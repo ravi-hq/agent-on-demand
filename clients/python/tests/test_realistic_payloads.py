@@ -19,7 +19,7 @@ def test_agent_full_payload():
         "description": "a test agent",
         "system": "you are helpful",
         "model": "claude-sonnet-4-5",
-        "runtime": "claude-code",
+        "provider": "anthropic",
         "environment_id": "a6aa9a1f-1abf-4f3e-8c8a-53fe3a8bd4c8",
         "skills": [{"name": "web", "config": {}}],
         "mcp_servers": [
@@ -52,7 +52,7 @@ def test_agent_version_full_payload():
         "description": None,
         "system": None,
         "model": "claude-sonnet-4-5",
-        "runtime": "claude-code",
+        "provider": "anthropic",
         "environment_id": None,
         "skills": [],
         "mcp_servers": [],
@@ -101,7 +101,7 @@ def test_session_full_payload():
         "id": "3f5e8a8b-9d48-4d70-b7e2-5f1e2d3cabef",
         "agent_id": "c9d9ab0f-3e2f-4a08-9b58-39b65efb55b2",
         "environment_id": "a6aa9a1f-1abf-4f3e-8c8a-53fe3a8bd4c8",
-        "runtime": "claude-code",
+        "provider": "anthropic",
         "status": "completed",
         "exit_code": 0,
         "created_at": "2026-04-22T05:15:16.910301+00:00",
@@ -117,7 +117,7 @@ def test_session_full_payload():
         "current_turn": 3,
     }
     session = Session.model_validate(raw)
-    assert session.runtime == "claude-code"
+    assert session.provider == "anthropic"
     assert session.exit_code == 0
     assert session.resources[0].type == "github_repository"
     assert session.resources[0].mount_path == "/workspace/agent-on-demand"

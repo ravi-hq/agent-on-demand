@@ -19,7 +19,7 @@ Each event is a line of the form `data: <json>\n\n`. All events except `start` a
 
 | Type | Payload | Notes |
 |------|---------|-------|
-| `start` | `{"type":"start","runtime":"claude","session_id":"<uuid>"}` | Always the first event, before any replayed output. No `id` field. |
+| `start` | `{"type":"start","provider":"anthropic","session_id":"<uuid>"}` | Always the first event, before any replayed output. No `id` field. |
 | `stage` | `{"type":"stage","id":3,"stage":"create_sprite","state":"started"\|"done"\|"failed","duration_ms":15200,"message":"..."}` | Emitted during provisioning and just before the runtime starts. `duration_ms` is present on `done` and `failed`; `message` is present on `failed` only. Non-terminal — clients should keep reading. See [Provisioning stages](#provisioning-stages) below. |
 | `turn_start` | `{"type":"turn_start","id":42,"turn":1}` | Emitted before the first `output` event of each turn. Turn numbers start at 1. No SSE `id:` line — use the `id` from the `output` event that follows for `Last-Event-ID`. |
 | `output` | `{"type":"output","id":42,"stream":"stdout"\|"stderr","data":"...","turn":1}` | One chunk of agent output; may contain multiple lines |
@@ -73,7 +73,7 @@ Connecting to a stream always replays all stored output from the beginning:
 ## Example stream
 
 ```
-data: {"type": "start", "runtime": "claude", "session_id": "..."}
+data: {"type": "start", "provider": "anthropic", "session_id": "..."}
 
 data: {"type": "turn_start", "id": 1, "turn": 1}
 

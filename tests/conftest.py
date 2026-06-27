@@ -34,18 +34,23 @@ def fake_sprites(mocker):
 
     mocker.patch("agent_on_demand.session_service.tasks.execute_turn.defer")
 
+    from agent_on_demand.session_service.provisioning import destroy_session
     from agent_on_demand.session_service.tasks import (
-        destroy_session_task,
+        _provision_session_inner,
         provision_session_task,
     )
 
     def _inline_provision(**kwargs):
-        provision_session_task(**kwargs)
+        kwargs.pop("_otel_carrier", None)
+        _provision_session_inner(**kwargs)
 
     def _inline_destroy(**kwargs):
-        destroy_session_task(**kwargs)
+        kwargs.pop("_otel_carrier", None)
+        destroy_session(kwargs["handle"])
 
     mocker.patch.object(provision_session_task, "defer", side_effect=_inline_provision)
+    from agent_on_demand.session_service.tasks import destroy_session_task
+
     mocker.patch.object(destroy_session_task, "defer", side_effect=_inline_destroy)
     return fake
 

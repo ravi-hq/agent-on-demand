@@ -39,8 +39,8 @@ export interface Agent {
   name: string;
   description?: string | null;
   system?: string | null;
+  provider: string;
   model: string;
-  runtime: string;
   environment_id?: string | null;
   skills: Record<string, unknown>[];
   mcp_servers: McpServer[];
@@ -57,8 +57,8 @@ export interface AgentVersion {
   name: string;
   description?: string | null;
   system?: string | null;
+  provider: string;
   model: string;
-  runtime: string;
   environment_id?: string | null;
   skills: Record<string, unknown>[];
   mcp_servers: McpServer[];
@@ -95,7 +95,7 @@ export interface Session {
   id: string;
   agent_id?: string | null;
   environment_id?: string | null;
-  runtime: string;
+  provider: string;
   status: SessionStatus;
   exit_code?: number | null;
   created_at: string;

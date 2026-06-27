@@ -37,8 +37,8 @@ class TestAgentCRUD:
         )
         assert agent["type"] == "agent"
         assert agent["name"].startswith("e2e-agent-")
-        assert agent["model"] == "anthropic/claude-sonnet-4-6"
-        assert agent["runtime"] == "claude"
+        assert agent["model"] == "claude-sonnet-4-6"
+        assert agent["provider"] == "anthropic"
         assert agent["system"] == "You are a helpful assistant."
         assert agent["description"] == "E2E test agent"
         assert agent["skills"][0]["name"] == "web-search"
@@ -58,21 +58,21 @@ class TestAgentCRUD:
         assert agent["mcp_servers"] == []
         assert agent["metadata"] == {}
 
-    def test_create_agent_invalid_model_rejected(self, api):
+    def test_create_agent_blank_model_rejected(self, api):
         resp = api.create_agent(
             name=_unique("e2e-bad"),
-            model="not-a-model",
-            runtime="claude",
+            provider="anthropic",
+            model="",
         )
         assert resp.status_code == 422
 
-    def test_create_agent_invalid_runtime_rejected(self, api):
+    def test_create_agent_invalid_provider_rejected(self, api):
         resp = api.create_agent(
             name=_unique("e2e-bad"),
-            model="anthropic/claude-sonnet-4-6",
-            runtime="invalid",
+            provider="invalid",
+            model="claude-sonnet-4-6",
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 422
 
     def test_create_agent_missing_fields_rejected(self, api):
         resp = api.create_agent(name=_unique("e2e-bad"))

@@ -56,7 +56,6 @@ def test_two_runtimes_changed_unions_runtimes():
         "src/agent_on_demand/signals.py",
         "src/agent_on_demand/tasks.py",
         "src/agent_on_demand/urls.py",
-        "src/agent_on_demand/models_catalog.py",
         "src/agent_on_demand/models/auth.py",
     ],
 )

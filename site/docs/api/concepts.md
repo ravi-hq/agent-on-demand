@@ -6,7 +6,7 @@
 
 An **agent** is a reusable template that defines how an AI coding agent behaves:
 
-- `model` + `runtime` — which AI model to use and which runtime to invoke it through.
+- `provider` + `model` — which AI provider and free-form model string to use.
 - `system` — system prompt prepended to the first turn.
 - `skills` + `mcp_servers` — additional capabilities made available to the agent.
 - `environment_id` — an optional default environment (overridable per session).

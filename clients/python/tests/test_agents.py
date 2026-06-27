@@ -34,7 +34,7 @@ def test_create_sends_optional_fields_only_when_set(client, server, make_agent):
     client.agents.create(
         name="created",
         model="m",
-        runtime="r",
+        provider="p",
         system="be helpful",
         description="demo agent",
         metadata={"k": "v"},
@@ -44,7 +44,7 @@ def test_create_sends_optional_fields_only_when_set(client, server, make_agent):
     assert sent == {
         "name": "created",
         "model": "m",
-        "runtime": "r",
+        "provider": "p",
         "system": "be helpful",
         "description": "demo agent",
         "metadata": {"k": "v"},
@@ -54,8 +54,8 @@ def test_create_sends_optional_fields_only_when_set(client, server, make_agent):
 def test_create_omits_null_optional_fields(client, server, make_agent):
     created = make_agent()
     server.json("POST", "/agents", 201, created)
-    client.agents.create(name="x", model="m", runtime="r")
-    assert server.requests[-1].body == {"name": "x", "model": "m", "runtime": "r"}
+    client.agents.create(name="x", model="m", provider="p")
+    assert server.requests[-1].body == {"name": "x", "model": "m", "provider": "p"}
 
 
 def test_get(client, server, make_agent):
@@ -96,10 +96,10 @@ def test_update_validation_error(client, server, make_agent):
         "PUT",
         f"/agents/{agent['id']}",
         422,
-        {"detail": [{"loc": ["runtime"], "msg": "invalid"}]},
+        {"detail": [{"loc": ["provider"], "msg": "invalid"}]},
     )
     with pytest.raises(ValidationError) as excinfo:
-        client.agents.update(agent["id"], version=1, runtime="bogus")
+        client.agents.update(agent["id"], version=1, provider="bogus")
     assert isinstance(excinfo.value.detail, list)
 
 
@@ -130,7 +130,7 @@ def test_versions(client, server, make_agent):
             "description": None,
             "system": None,
             "model": "m",
-            "runtime": "r",
+            "provider": "p",
             "environment_id": None,
             "skills": [],
             "mcp_servers": [],
@@ -158,7 +158,7 @@ def test_create_with_typed_skills(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         skills=[
             InlineSkill(name="careful", description="Be careful", content="rules go here"),
             GithubSkill(description="Browser automation", source="ravi-hq/skills", name="browse"),
@@ -185,7 +185,7 @@ def test_create_with_dict_skills_still_works(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         skills=[{"name": "raw", "description": "d", "content": "c"}],
     )
 
@@ -241,7 +241,7 @@ def test_create_with_typed_mcp_servers(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         mcp_servers=[
             McpServerUrl(name="docs", url="https://docs.example/mcp"),
             McpServerStdio(name="local", command="my-mcp-server", args=["--quiet"]),
@@ -262,7 +262,7 @@ def test_create_with_dict_mcp_servers_still_works(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         mcp_servers=[{"name": "raw", "type": "url", "url": "https://example/mcp"}],
     )
 
@@ -278,7 +278,7 @@ def test_create_with_mixed_typed_and_dict_mcp_servers(client, server, make_agent
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         mcp_servers=[
             McpServerUrl(name="a", url="https://a/mcp"),
             {"name": "b", "type": "stdio", "command": "b"},
@@ -298,7 +298,7 @@ def test_typed_mcp_url_optional_headers(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         mcp_servers=[
             McpServerUrl(name="auth", url="https://api/mcp", headers={"X-Token": "secret"}),
         ],
@@ -315,7 +315,7 @@ def test_typed_mcp_stdio_optional_env(client, server, make_agent):
     client.agents.create(
         name="x",
         model="m",
-        runtime="r",
+        provider="p",
         mcp_servers=[
             McpServerStdio(name="local", command="my-mcp-server", env={"K": "v"}),
         ],

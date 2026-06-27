@@ -56,8 +56,8 @@ def _make_session_and_turn(user):
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     session = AgentSession.objects.create(

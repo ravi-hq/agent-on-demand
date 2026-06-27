@@ -5,6 +5,7 @@ from django.views.decorators.http import require_GET
 
 from agent_on_demand.auth import require_api_key
 from agent_on_demand.models import AgentSession
+from agent_on_demand.providers import provider_for_runtime
 
 # Test code patches `agent_on_demand.views.sessions.stream_session_from_db` to
 # stub the SSE source. Resolve through the package namespace so the patch is
@@ -17,7 +18,9 @@ from agent_on_demand.views import sessions as _pkg  # noqa: E402
 async def stream_session(request, session_id):
     """Stream session logs via SSE (live tail + full replay)."""
     try:
-        session = await AgentSession.objects.aget(pk=session_id, user=request.user)
+        session = await AgentSession.objects.select_related("agent").aget(
+            pk=session_id, user=request.user
+        )
     except AgentSession.DoesNotExist:
         return JsonResponse({"detail": "Session not found"}, status=404)
 
@@ -28,11 +31,16 @@ async def stream_session(request, session_id):
         return JsonResponse({"detail": "since must be an integer"}, status=400)
 
     async def event_generator():
+        if session.agent_id and session.agent:
+            provider = session.agent.provider
+        else:
+            try:
+                provider = provider_for_runtime(session.runtime)
+            except ValueError:
+                provider = session.runtime
         yield (
             "data: "
-            + json.dumps(
-                {"type": "start", "runtime": session.runtime, "session_id": str(session.id)}
-            )
+            + json.dumps({"type": "start", "provider": provider, "session_id": str(session.id)})
             + "\n\n"
         )
 

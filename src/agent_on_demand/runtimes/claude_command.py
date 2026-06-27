@@ -57,6 +57,8 @@ def build_claude_command(spec: SessionSpec, mode: Literal["run", "continue"]) ->
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        spec.model,
         "--resume" if mode == "continue" else "--session-id",
         session_id,
     ]

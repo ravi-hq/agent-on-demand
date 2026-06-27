@@ -206,8 +206,8 @@ def test_agent_created_event_fires_with_safe_props(client: Client, auth_headers,
         data=json.dumps(
             {
                 "name": "obs-agent",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "system": "SYSTEM_PROMPT_BODY_SHOULD_NOT_LEAK",
                 "skills": [
                     {
@@ -225,8 +225,8 @@ def test_agent_created_event_fires_with_safe_props(client: Client, auth_headers,
     matched = [e for e in captured_events if e["event"] == "agent.created"]
     assert len(matched) == 1
     props = matched[0]["properties"]
-    assert props["runtime"] == "claude"
-    assert props["model"] == "anthropic/claude-sonnet-4-6"
+    assert props["provider"] == "anthropic"
+    assert props["model"] == "claude-sonnet-4-6"
     assert props["skill_count"] == 1
     assert props["system_length"] == len("SYSTEM_PROMPT_BODY_SHOULD_NOT_LEAK")
 
@@ -293,8 +293,8 @@ def test_session_created_event_excludes_prompt_and_repo_url(
         data=json.dumps(
             {
                 "name": "a",
-                "model": "anthropic/claude-sonnet-4-6",
-                "runtime": "claude",
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-6",
                 "environment_id": env_id,
             }
         ),
@@ -322,6 +322,7 @@ def test_session_created_event_excludes_prompt_and_repo_url(
     matched = [e for e in captured_events if e["event"] == "session.created"]
     assert len(matched) == 1
     props = matched[0]["properties"]
+    assert props["provider"] == "anthropic"
     assert props["runtime"] == "claude"
     assert props["repo_count"] == 1
     assert props["env_var_count"] == 1

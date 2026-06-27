@@ -6,7 +6,7 @@ import uuid
 
 import pytest
 
-from tests.e2e.conftest import RUNTIME_MODELS, _unique, stream_all_output
+from tests.e2e.conftest import RUNTIME_MODELS, RUNTIME_PROVIDERS, _unique, stream_all_output
 from tests.e2e.test_mcp import _concat_json_strings
 
 # Every test in this module spawns a real agent session — bucket them under
@@ -73,6 +73,7 @@ class TestSessionLifecycle:
             "final": final,
             "events": events,
             "runtime": runtime,
+            "provider": RUNTIME_PROVIDERS[runtime],
         }
         try:
             api.terminate_session(session["id"])
@@ -93,7 +94,7 @@ class TestSessionLifecycle:
         assert completed["final"]["exit_code"] == 0
 
     def test_session_has_correct_runtime(self, completed):
-        assert completed["final"]["runtime"] == completed["runtime"]
+        assert completed["final"]["provider"] == completed["provider"]
 
     def test_get_session_returns_metadata(self, api, completed):
         resp = api.get_session(completed["initial"]["id"])
@@ -101,7 +102,7 @@ class TestSessionLifecycle:
         data = resp.json()
         assert data["id"] == completed["initial"]["id"]
         assert data["agent_id"] == completed["agent"]["id"]
-        assert data["runtime"] == completed["runtime"]
+        assert data["provider"] == completed["provider"]
         assert "created_at" in data
         assert "updated_at" in data
 
@@ -129,6 +130,7 @@ class TestStreaming:
             "final": final,
             "events": events,
             "runtime": runtime,
+            "provider": RUNTIME_PROVIDERS[runtime],
         }
         try:
             api.terminate_session(session["id"])
@@ -147,7 +149,7 @@ class TestStreaming:
 
     def test_start_event_fields(self, streamed):
         start = next(e for e in streamed["events"] if e["type"] == "start")
-        assert start["runtime"] == streamed["runtime"]
+        assert start["provider"] == streamed["provider"]
         assert start["session_id"] == streamed["session"]["id"]
 
     def test_exit_event_code(self, streamed):
