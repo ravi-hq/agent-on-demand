@@ -21,7 +21,7 @@ def _spec(user) -> SessionSpec:
     return SessionSpec(
         name="sprite-x",
         runtime=CodexRuntime(),
-        model="openai/gpt-4.1",
+        model="gpt-4.1",
         user=user,
         runtime_session_id=None,
         environment=None,
@@ -45,6 +45,8 @@ def test_build_command_run(user):
     assert argv == [
         "codex",
         "exec",
+        "-m",
+        "gpt-4.1",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]
@@ -58,6 +60,8 @@ def test_build_command_continue(user):
         "exec",
         "resume",
         "--last",
+        "-m",
+        "gpt-4.1",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]

@@ -25,7 +25,7 @@ def _spec(user) -> SessionSpec:
     return SessionSpec(
         name="sprite-x",
         runtime=ClaudeRuntime(),
-        model="anthropic/claude-sonnet-4-6",
+        model="claude-sonnet-4-6",
         user=user,
         runtime_session_id=SESSION_UUID,
         environment=None,
@@ -69,6 +69,8 @@ def test_build_command_run(user):
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
         "--session-id",
         SESSION_UUID,
     ]
@@ -84,6 +86,8 @@ def test_build_command_continue(user):
         "--verbose",
         "--output-format",
         "stream-json",
+        "--model",
+        "claude-sonnet-4-6",
         "--resume",
         SESSION_UUID,
     ]
