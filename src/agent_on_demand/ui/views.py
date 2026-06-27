@@ -25,9 +25,7 @@ from agent_on_demand.models import (
     SessionTurn,
     UserQuota,
 )
-from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR, UserCredential
 from agent_on_demand.providers import normalize_provider_model, runtime_for_provider
-from agent_on_demand.runtimes import RUNTIMES
 from agent_on_demand.session_service.tracing import inject_carrier
 from agent_on_demand.session_state import check_can_accept_prompt, check_can_terminate
 from agent_on_demand.ui.forms import (
@@ -577,17 +575,10 @@ def _validate_agent_can_start_session(agent: Agent, user) -> str | None:
     if agent.environment and agent.environment.is_archived:
         return "Cannot create session with archived environment."
     try:
-        runtime = runtime_for_provider(agent.provider)
+        runtime_for_provider(agent.provider)
     except ValueError as exc:
         return str(exc)
 
-    runtime_obj = RUNTIMES[runtime]
-    accepted_kinds = {f"provider:{p}" for p in runtime_obj.providers}
-    accepted_kinds |= {
-        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{runtime}")
-    }
-    if not UserCredential.objects.filter(user=user, kind__in=accepted_kinds).exists():
-        return f"No API key configured for provider: {agent.provider}"
     if session_service.get_client() is None:
         return "Session backend is not configured."
     return None

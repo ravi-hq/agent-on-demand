@@ -78,8 +78,8 @@ Three resources, one HTTP API:
   prompt, MCP servers, skills. Define once, version with optimistic
   concurrency, share across a million sessions.
 - **[Environments](concepts.md#environments)** are the sandbox — packages,
-  secrets (encrypted at rest, never echoed back), setup scripts, network
-  policy. Declare it once, applied automatically when a session starts.
+  reusable env vars, setup scripts, network policy. Declare it once, applied
+  automatically when a session starts.
 - **[Sessions](concepts.md#sessions)** are the run — one agent in one
   sandbox, streaming its work back over [SSE](streaming.md). Continue with
   another prompt; the filesystem is still warm. Every turn logged,

@@ -20,7 +20,6 @@ from agent_on_demand.models import (
     AgentSession,
     APIKey,
     SessionTurn,
-    UserCredential,
 )
 
 
@@ -42,10 +41,7 @@ def sprites_key(settings):
 
 @pytest.fixture
 def runtime_key(user, sprites_key):
-    cred = UserCredential(user=user, kind="provider:anthropic")
-    cred.set_value("fake-anthropic")
-    cred.save()
-    return cred
+    return {"ANTHROPIC_API_KEY": "fake-anthropic"}
 
 
 @pytest.fixture

@@ -6,7 +6,6 @@ that understanding these rows explains most behavior.
 ```mermaid
 erDiagram
   User ||--o{ APIKey : owns
-  User ||--o{ UserCredential : owns
   User ||--o{ UserQuota : limits
   User ||--o{ Environment : owns
   Environment ||--o{ EnvironmentVersion : snapshots
@@ -15,19 +14,20 @@ erDiagram
   Agent ||--o{ AgentSession : starts
   Environment ||--o{ AgentSession : configures
   AgentSession ||--o{ SessionResource : mounts
+  AgentSession ||--|| SessionSecretEnvVars : supplies
   AgentSession ||--o{ SessionTurn : contains
   AgentSession ||--o{ AgentSessionLog : streams
 ```
 
 ## Files
 
-- `auth.py` defines `APIKey` and encrypted `UserCredential` rows.
+- `auth.py` defines hashed API bearer keys.
 - `quota.py` defines per-user concurrent session limits.
 - `environments.py` defines reusable setup plus immutable snapshots.
 - `agents.py` defines runtime/model/system/tool config plus immutable
   snapshots.
-- `sessions.py` defines execution rows: sessions, mounted resources, turns,
-  and log chunks.
+- `sessions.py` defines execution rows: sessions, mounted resources,
+  encrypted session-scoped env vars, turns, and log chunks.
 - `__init__.py` re-exports the public model set for imports.
 
 ## Key Ideas

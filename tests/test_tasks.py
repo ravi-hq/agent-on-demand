@@ -22,7 +22,6 @@ from agent_on_demand.models import (
     AgentSessionLog,
     APIKey,
     SessionTurn,
-    UserCredential,
 )
 from agent_on_demand.session_service.log_sink import LogChunkSink, TaggingQueueWriter
 from agent_on_demand.session_service.tasks import (
@@ -391,9 +390,6 @@ def provision_user(db, settings):
     settings.SPRITES_API_KEY = "fake-sprites-token"
     u = User.objects.create_user(username="prov", password="p")
     APIKey.create_key(u, "test-key")
-    cred = UserCredential(user=u, kind="provider:anthropic")
-    cred.set_value("fake-anthropic-key")
-    cred.save()
     return u
 
 
@@ -582,13 +578,11 @@ def test_execute_turn_skips_finalization_if_session_deleted_mid_turn(user, mocke
 
 
 @pytest.mark.django_db
-def test_provision_task_runs_with_no_runtime_credential(provision_user, fake_sprites, mocker):
-    """Credentials are now dumped wholesale into /tmp/aod-env; provisioning
-    no longer short-circuits on missing creds (the session-create HTTP gate
-    is what prevents this from reaching the worker). This just confirms the
-    worker path succeeds with zero credentials."""
+def test_provision_task_runs_without_session_secret_env_vars(provision_user, fake_sprites, mocker):
+    """AOD no longer owns provider credentials, so provisioning succeeds even
+    when no session-scoped secrets were supplied. The runtime CLI may fail
+    later if the caller omitted required provider env vars."""
     session, turn = _make_pending_session(provision_user)
-    UserCredential.objects.filter(user=provision_user).delete()
     defer_spy = mocker.patch("agent_on_demand.session_service.tasks.execute_turn.defer")
 
     provision_session_task(

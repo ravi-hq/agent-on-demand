@@ -13,6 +13,7 @@ export interface SessionCreateParams {
   environment_id?: string;
   timeout?: number;
   resources?: SessionResourceInput[];
+  secret_env_vars?: Record<string, string>;
 }
 
 export interface SessionPromptParams {

@@ -50,6 +50,9 @@ def build_spec_for_session(session: AgentSession) -> SessionSpec:
         RepoSpec(url=r.url, mount_path=r.mount_path, token=r.get_token())
         for r in session.resources.all()
     ]
+    secret_env_vars = {}
+    if hasattr(session, "secret_env_vars"):
+        secret_env_vars = session.secret_env_vars.get_env_vars()
 
     return SessionSpec(
         name=session.backend_handle,
@@ -61,5 +64,6 @@ def build_spec_for_session(session: AgentSession) -> SessionSpec:
         repos=repos,
         mcp_servers=mcp_servers,
         skills=skills,
+        secret_env_vars=secret_env_vars,
         backend=session.backend,
     )

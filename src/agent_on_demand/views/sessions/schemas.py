@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from agent_on_demand.validation.environment_validation import validate_env_vars
 from agent_on_demand.validation.github_resource_validation import (
     resolved_mount_path,
     validate_github_url,
@@ -48,12 +49,21 @@ class RunRequest(BaseModel):
         default_factory=list,
         description="GitHub repositories to clone into the session",
     )
+    secret_env_vars: dict[str, str] = Field(
+        default_factory=dict,
+        description="Session-scoped secret environment variables. Values are encrypted at rest and never returned.",
+    )
 
     @field_validator("resources")
     @classmethod
     def _validate_resources(cls, v: list[GitHubRepoResource]) -> list[GitHubRepoResource]:
         validate_resources_count_and_dedup([r.resolved_mount_path() for r in v])
         return v
+
+    @field_validator("secret_env_vars")
+    @classmethod
+    def _validate_secret_env_vars(cls, v: dict[str, str]) -> dict[str, str]:
+        return validate_env_vars(v)
 
 
 class PromptRequest(BaseModel):

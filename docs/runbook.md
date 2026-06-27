@@ -235,8 +235,7 @@ Django sessions for the UI break; API bearer auth is unaffected (bearer tokens a
 ### Rotate `FIELD_ENCRYPTION_KEY`
 
 **Don't, without a plan.** This key encrypts:
-- `UserCredential.value_encrypted` (every user's Anthropic/OpenAI/Google model API key)
-- `Environment.env_vars` (per-environment secrets)
+- `SessionSecretEnvVars.encrypted_env_vars` (session-scoped BYOK/runtime secrets)
 - `SessionResource.encrypted_token` (repo access tokens)
 
 Rotating invalidates all of the above. A rotation plan needs a dual-key read path first. If the key is leaked, the correct move is coordinated: notify users, have them re-enter keys after we deploy the new one.

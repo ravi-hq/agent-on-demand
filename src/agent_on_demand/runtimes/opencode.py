@@ -20,8 +20,8 @@ class OpencodeRuntime:
     One `opencode` binary fronts 75+ providers; the provider+model is picked
     per invocation via `--model provider/model_id`. Opencode reads the native
     provider env vars (ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY)
-    directly, which the env-file writer already dumps for every registered
-    `UserCredential`, so no auth plumbing is needed here.
+    directly, which callers provide through session-scoped `secret_env_vars`,
+    so no auth plumbing is needed here.
 
     Not pre-installed on the Sprite base image — `install` runs `npm i -g
     opencode-ai@<pinned>` on each provision. If the Environment has

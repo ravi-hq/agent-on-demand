@@ -15,7 +15,6 @@ from agent_on_demand.models import (
     AgentSession,
     AgentSessionLog,
     Environment,
-    UserCredential,
 )
 from agent_on_demand.runtimes import RUNTIMES
 from agent_on_demand.session_service import (
@@ -29,11 +28,7 @@ from agent_on_demand.session_service.specs import SkillSpec
 @pytest.fixture
 def user(db, settings):
     settings.SPRITES_API_KEY = "fake-sprites-token"
-    u = User.objects.create_user(username="svc", password="p")
-    cred = UserCredential(user=u, kind="provider:anthropic")
-    cred.set_value("sk-xxx")
-    cred.save()
-    return u
+    return User.objects.create_user(username="svc", password="p")
 
 
 def _spec(user, **overrides) -> SessionSpec:
@@ -106,44 +101,47 @@ class TestProvisionSessionOrder:
             "bash -l /tmp/aod-provision.sh",
         ]
 
-    def test_env_file_contains_credential_and_session_id(self, user, fake_sprites):
-        provision_session(_spec(user))
+    def test_env_file_contains_secret_env_vars_and_session_id(self, user, fake_sprites):
+        provision_session(_spec(user, secret_env_vars={"ANTHROPIC_API_KEY": "sk-xxx"}))
         env_file = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
-        # Credentials come from UserCredential rows for this user.
+        # Provider credentials come from session-scoped secrets supplied by the caller.
         assert "ANTHROPIC_API_KEY=sk-xxx" in env_file
         assert "AOD_SESSION_ID=11111111-2222-3333-4444-555555555555" in env_file
         # AOD_MODEL surfaces the canonical provider/model_id for meta-runtimes.
         assert "AOD_MODEL=anthropic/claude-sonnet-4-6" in env_file
 
-    def test_env_file_includes_runtime_token_when_present(self, user, fake_sprites):
-        oauth = UserCredential(user=user, kind="runtime_token:claude-oauth")
-        oauth.set_value("oauth-token")
-        oauth.save()
-        provision_session(_spec(user))
+    def test_env_file_includes_runtime_token_from_secret_env_vars(self, user, fake_sprites):
+        provision_session(
+            _spec(
+                user,
+                secret_env_vars={
+                    "ANTHROPIC_API_KEY": "sk-xxx",
+                    "CLAUDE_CODE_OAUTH_TOKEN": "oauth-token",
+                },
+            )
+        )
         env_file = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         assert "ANTHROPIC_API_KEY=sk-xxx" in env_file
         assert "CLAUDE_CODE_OAUTH_TOKEN=oauth-token" in env_file
 
-    def test_env_vars_override_credentials(self, user, fake_sprites):
-        """Environment.env_vars land last in the file, so when the same KEY
-        appears in both a credential and an environment, the environment
-        wins on `source` because later assignments overwrite earlier ones."""
+    def test_secret_env_vars_override_environment_env_vars(self, user, fake_sprites):
+        """Session-scoped BYOK values land last, so explicit run secrets win."""
         env = Environment.objects.create(
             user=user,
             name="override",
             env_vars={"ANTHROPIC_API_KEY": "env-override"},
             version=1,
         )
-        provision_session(_spec(user, environment=env))
+        provision_session(
+            _spec(user, environment=env, secret_env_vars={"ANTHROPIC_API_KEY": "sk-xxx"})
+        )
         body = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         lines = body.strip().split("\n")
-        cred_idx = next(
-            i for i, line in enumerate(lines) if line.startswith("ANTHROPIC_API_KEY=sk-xxx")
-        )
-        override_idx = next(
+        env_idx = next(
             i for i, line in enumerate(lines) if line == "ANTHROPIC_API_KEY=env-override"
         )
-        assert cred_idx < override_idx
+        secret_idx = next(i for i, line in enumerate(lines) if line == "ANTHROPIC_API_KEY=sk-xxx")
+        assert env_idx < secret_idx
 
     def test_no_run_agent_script_is_written(self, user, fake_sprites):
         """The per-turn runtime-CLI invocation is assembled inline in the
@@ -487,9 +485,9 @@ class TestProvisionSessionEnvFileShape:
         provision_session(_spec(user, environment=env))
         body = fake_sprites.last_sprite().write_map()["/tmp/aod-env"]
         lines = body.strip().split("\n")
-        # Credentials are dumped first (order depends on DB row id; one
-        # here), then AOD_SESSION_ID / AOD_MODEL, then env_vars alpha-sorted.
-        assert any(line.startswith("ANTHROPIC_API_KEY=") for line in lines)
+        # Provider keys are only injected when callers supply session-scoped
+        # secret_env_vars; reusable environment values still land sorted.
+        assert not any(line.startswith("ANTHROPIC_API_KEY=") for line in lines)
         assert any(line.startswith("AOD_SESSION_ID=") for line in lines)
         a_idx = next(i for i, line in enumerate(lines) if line.startswith("A_FIRST="))
         b_idx = next(i for i, line in enumerate(lines) if line.startswith("B_SECOND="))

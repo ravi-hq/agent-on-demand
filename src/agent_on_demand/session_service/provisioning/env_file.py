@@ -32,10 +32,10 @@ def build_env_file_body(
     ``shlex.quote``-d before emission.
 
     Precedence: credentials → runtime_static_env → AOD_SESSION_ID →
-    AOD_MODEL → sorted ``spec.environment.env_vars`` (per-environment
-    overrides win, so a user can opt out of a runtime-contributed var by
-    re-setting it in their environment). Body always ends with exactly
-    one trailing newline.
+    AOD_MODEL → sorted ``spec.environment.env_vars`` →
+    sorted ``spec.secret_env_vars``. Session-scoped secrets are explicit
+    per-run inputs from trusted callers and override reusable Environment
+    config. Body always ends with exactly one trailing newline.
     """
     lines: list[str] = []
     for env_name, value in credentials:
@@ -53,4 +53,6 @@ def build_env_file_body(
     if env is not None:
         for key, value in sorted((env.env_vars or {}).items()):
             lines.append(f"{key}={shlex.quote(value)}")
+    for key, value in sorted((getattr(spec, "secret_env_vars", {}) or {}).items()):
+        lines.append(f"{key}={shlex.quote(value)}")
     return "\n".join(lines) + "\n"

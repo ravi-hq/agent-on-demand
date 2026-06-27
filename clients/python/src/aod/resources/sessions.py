@@ -46,6 +46,7 @@ def _create_body(
     environment_id: str | UUID | None = None,
     timeout: int | None = None,
     resources: list[GithubRepoResourceInput] | None = None,
+    secret_env_vars: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"agent_id": str(agent_id), "prompt": prompt}
     if environment_id is not None:
@@ -55,6 +56,8 @@ def _create_body(
     normalized = _normalize_resources(resources)
     if normalized is not None:
         body["resources"] = normalized
+    if secret_env_vars is not None:
+        body["secret_env_vars"] = secret_env_vars
     return body
 
 
@@ -99,6 +102,7 @@ class Sessions:
         environment_id: str | UUID | None = None,
         timeout: int | None = None,
         resources: list[GithubRepoResourceInput] | None = None,
+        secret_env_vars: dict[str, str] | None = None,
     ) -> SessionAck:
         body = _create_body(
             agent_id=agent_id,
@@ -106,6 +110,7 @@ class Sessions:
             environment_id=environment_id,
             timeout=timeout,
             resources=resources,
+            secret_env_vars=secret_env_vars,
         )
         return SessionAck.model_validate(check_response(self._client.post("/sessions", json=body)))
 
@@ -279,6 +284,7 @@ class AsyncSessions:
         environment_id: str | UUID | None = None,
         timeout: int | None = None,
         resources: list[GithubRepoResourceInput] | None = None,
+        secret_env_vars: dict[str, str] | None = None,
     ) -> SessionAck:
         body = _create_body(
             agent_id=agent_id,
@@ -286,6 +292,7 @@ class AsyncSessions:
             environment_id=environment_id,
             timeout=timeout,
             resources=resources,
+            secret_env_vars=secret_env_vars,
         )
         return SessionAck.model_validate(
             check_response(await self._client.post("/sessions", json=body))

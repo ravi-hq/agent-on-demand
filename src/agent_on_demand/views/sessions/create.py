@@ -13,12 +13,11 @@ from agent_on_demand.models import (
     AgentSession,
     Environment,
     SessionResource,
+    SessionSecretEnvVars,
     SessionTurn,
     UserQuota,
 )
-from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR, UserCredential
 from agent_on_demand.providers import runtime_for_provider
-from agent_on_demand.runtimes import RUNTIMES
 from agent_on_demand.session_service.tracing import inject_carrier
 from agent_on_demand.views._helpers import parse_request_body
 
@@ -81,24 +80,6 @@ def _create_session(request):
             status=400,
         )
 
-    # Ensure the user has registered at least one credential that this runtime
-    # can authenticate with. A runtime accepts either a provider credential
-    # (e.g. `provider:anthropic` for Claude's Anthropic API) or a
-    # runtime-specific token (e.g. `runtime_token:claude-oauth`).
-    runtime_obj = RUNTIMES[runtime]
-    accepted_kinds = {f"provider:{p}" for p in runtime_obj.providers}
-    accepted_kinds |= {
-        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{runtime}")
-    }
-    has_credential = UserCredential.objects.filter(
-        user=request.user, kind__in=accepted_kinds
-    ).exists()
-    if not has_credential:
-        return JsonResponse(
-            {"detail": f"No API key configured for provider: {agent_obj.provider}"},
-            status=400,
-        )
-
     # Sync pre-check so a misconfigured deploy (missing platform backend token)
     # returns 503 immediately rather than surfacing as a failed session the
     # client has to poll for.
@@ -149,6 +130,10 @@ def _create_session(request):
             runtime_session_id=runtime_session_id,
             status="pending",
         )
+        if req.secret_env_vars:
+            secret_env_vars = SessionSecretEnvVars(session=session)
+            secret_env_vars.set_env_vars(req.secret_env_vars)
+            secret_env_vars.save()
         turn = SessionTurn.objects.create(
             session=session,
             turn_number=1,
@@ -191,6 +176,7 @@ def _create_session(request):
             "mcp_server_count": len(agent_obj.mcp_servers or []),
             "skill_count": len(agent_obj.skills or []),
             "env_var_count": len((environment_obj.env_vars or {})) if environment_obj else 0,
+            "secret_env_var_count": len(req.secret_env_vars),
             "timeout": req.timeout,
         },
     )
