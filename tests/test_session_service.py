@@ -83,10 +83,36 @@ class TestProvisionSessionOrder:
     def test_no_mcp_servers_no_runtime_mkdir(self, user, fake_sprites):
         """Without MCP servers, the runtime-specific config dirs are not
         created — the mkdir line is only emitted for post-script writes that
-        actually need the parent dir to exist."""
+        actually need the parent dir to exist. (Codex is the exception — it
+        always writes auth.json there; covered separately below.)"""
+        provision_session(_spec(user, runtime=RUNTIMES["gemini"]))
+        script = fake_sprites.last_sprite().write_map()["/tmp/aod-provision.sh"]
+        assert "/home/sprite/.gemini" not in script
+
+    def test_codex_mkdir_even_without_mcp_servers(self, user, fake_sprites):
+        """Codex always writes ~/.codex/auth.json for API-key auth, so its
+        home dir is created during provisioning even with no MCP servers —
+        otherwise the auth.json write fails and the session never runs."""
         provision_session(_spec(user, runtime=RUNTIMES["codex"]))
         script = fake_sprites.last_sprite().write_map()["/tmp/aod-provision.sh"]
-        assert "/home/sprite/.codex" not in script
+        assert "mkdir -p /home/sprite/.codex" in script
+
+    def test_codex_provisioning_writes_auth_json_from_secret_key(self, user, fake_sprites):
+        """End-to-end: a codex session created with an OPENAI_API_KEY secret
+        gets ~/.codex/auth.json written (API-key auth) so the turn doesn't
+        401 with 'Missing bearer'. Pins the provisioning→write_config wiring,
+        not just write_config in isolation."""
+        import json
+
+        provision_session(
+            _spec(
+                user,
+                runtime=RUNTIMES["codex"],
+                secret_env_vars={"OPENAI_API_KEY": "sk-proj-e2e"},
+            )
+        )
+        auth = fake_sprites.last_sprite().write_map()["/home/sprite/.codex/auth.json"]
+        assert json.loads(auth) == {"OPENAI_API_KEY": "sk-proj-e2e"}
 
     def test_provisioning_issues_install_then_provision_script(self, user, fake_sprites):
         provision_session(_spec(user))

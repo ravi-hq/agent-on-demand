@@ -53,10 +53,14 @@ def directories_for_post_script_writes(spec: SessionSpec) -> list[str]:
     then inline-skill dirs in the order the skills appear on the spec.
     """
     dirs: list[str] = []
-    if spec.mcp_servers:
-        mcp_dir = _RUNTIME_MCP_CONFIG_DIR.get(spec.runtime.name)
-        if mcp_dir is not None:
-            dirs.append(mcp_dir)
+    config_dir = _RUNTIME_MCP_CONFIG_DIR.get(spec.runtime.name)
+    if config_dir is not None:
+        # codex always writes ~/.codex/auth.json (API-key auth, see
+        # runtimes/codex_auth.py), so its home dir must exist even with no
+        # MCP servers. Other runtimes only touch their config dir when there
+        # is MCP config to write.
+        if spec.mcp_servers or spec.runtime.name == "codex":
+            dirs.append(config_dir)
     if spec.runtime.skills_root:
         for s in spec.skills:
             if s.content is not None:

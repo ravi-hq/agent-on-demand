@@ -93,11 +93,20 @@ def test_opencode_mcp_dir_is_dotconfig_opencode():
 
 
 def test_no_mcp_servers_no_mcp_dir_emitted():
-    """Even for codex/gemini/opencode, an empty mcp_servers list means
-    no mkdir — the post-script doesn't write a config file when there
-    are no servers to configure."""
-    spec = _spec(runtime=_runtime(name="codex"), mcp_servers=[])
+    """For gemini/opencode, an empty mcp_servers list means no mkdir — the
+    post-script doesn't write a config file when there are no servers to
+    configure. (Codex is the exception, covered below — it always writes
+    auth.json there.)"""
+    spec = _spec(runtime=_runtime(name="gemini"), mcp_servers=[])
     assert directories_for_post_script_writes(spec) == []
+
+
+def test_codex_dir_emitted_even_without_mcp_servers():
+    """Codex always writes ~/.codex/auth.json for API-key auth, so its home
+    dir must be pre-created even when there are no MCP servers — otherwise
+    the post-script auth.json write fails and the session never runs."""
+    spec = _spec(runtime=_runtime(name="codex"), mcp_servers=[])
+    assert directories_for_post_script_writes(spec) == ["/home/sprite/.codex"]
 
 
 # ---------- inline-skill directories ----------

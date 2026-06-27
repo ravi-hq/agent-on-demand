@@ -63,6 +63,7 @@ class _FSPath:
 @dataclass
 class _Filesystem:
     writes: list[RecordedWrite] = field(default_factory=list)
+    chmods: list[tuple[str, int]] = field(default_factory=list)
     _write_raise_predicates: list[tuple] = field(default_factory=list)
 
     def __truediv__(self, other: str) -> _FSPath:
@@ -146,9 +147,11 @@ class _BackendWorkspaceAdapter:
             raise BackendError(str(e)) from e
 
     def chmod(self, path: str, mode: int) -> None:
-        # No-op — current tests don't observe chmod calls; the real
-        # provisioning script does its chmods inside the bash script.
-        pass
+        # Record (normalized path, mode) so tests can assert on chmods made
+        # through the workspace API — e.g. Codex's auth.json 0600. (The bulk
+        # provisioning script does its own chmods inside the bash script,
+        # which are asserted via shell_strings instead.)
+        self._fs.chmods.append(("/" + path.lstrip("/"), mode))
 
 
 class RecordingSprite:
@@ -204,6 +207,18 @@ class RecordingSprite:
     @property
     def writes(self) -> list[RecordedWrite]:
         return self._fs.writes
+
+    @property
+    def chmods(self) -> list[tuple[str, int]]:
+        """(normalized path, mode) for each chmod made via the workspace API."""
+        return self._fs.chmods
+
+    def chmod_map(self) -> dict[str, int]:
+        """Path → mode for the most recent chmod at each path."""
+        out: dict[str, int] = {}
+        for path, mode in self._fs.chmods:
+            out[path] = mode
+        return out
 
     def write_map(self) -> dict[str, str]:
         """Path → text for the most recent write at each path."""
