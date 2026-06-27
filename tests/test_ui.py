@@ -4,9 +4,13 @@ from django.test import Client
 
 from agent_on_demand.models import (
     Agent,
+    AgentVersion,
     AgentSession,
     APIKey,
     Environment,
+    EnvironmentVersion,
+    SessionTurn,
+    UserCredential,
 )
 
 
@@ -25,6 +29,19 @@ def logged_in_client(user):
     c = Client()
     c.force_login(user)
     return c
+
+
+@pytest.fixture
+def sprites_key(settings):
+    settings.SPRITES_API_KEY = "fake-sprites-token"
+
+
+@pytest.fixture
+def runtime_key(user, sprites_key):
+    cred = UserCredential(user=user, kind="provider:anthropic")
+    cred.set_value("fake-anthropic-key")
+    cred.save()
+    return cred
 
 
 @pytest.mark.django_db
@@ -140,6 +157,9 @@ def test_dashboard_renders_for_logged_in_user(logged_in_client):
     resp = logged_in_client.get("/ui/")
     assert resp.status_code == 200
     assert b"Dashboard" in resp.content
+    assert b"read-only" not in resp.content
+    assert b"Use Nebula or the API" not in resp.content
+    assert b"Create agents" in resp.content
 
 
 @pytest.mark.django_db
@@ -189,6 +209,79 @@ def test_agents_list_only_shows_owned(logged_in_client, user, other_user):
 
 
 @pytest.mark.django_db
+def test_agents_list_exposes_new_agent_link_not_create_form(logged_in_client):
+    resp = logged_in_client.get("/ui/agents")
+    assert resp.status_code == 200
+    assert b"New agent" in resp.content
+    assert b"/ui/agents/new" in resp.content
+    assert b"Create one via the API" not in resp.content
+    assert b'name="name"' not in resp.content
+
+
+@pytest.mark.django_db
+def test_agent_new_renders_create_agent_form(logged_in_client):
+    resp = logged_in_client.get("/ui/agents/new")
+    assert resp.status_code == 200
+    assert b"Create agent" in resp.content
+    assert b'name="name"' in resp.content
+    assert b'name="model"' in resp.content
+    assert b'name="runtime"' in resp.content
+
+
+@pytest.mark.django_db
+def test_create_agent_from_dashboard(logged_in_client, user):
+    resp = logged_in_client.post(
+        "/ui/agents/new",
+        data={
+            "name": "Dashboard Agent",
+            "model": "anthropic/claude-sonnet-4-6",
+            "runtime": "claude",
+            "description": "Handles dashboard work",
+            "system": "You are precise.",
+            "environment_id": "",
+        },
+    )
+    agent = Agent.objects.get(user=user, name="Dashboard Agent")
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/agents/{agent.id}"
+    assert agent.model == "anthropic/claude-sonnet-4-6"
+    assert agent.runtime == "claude"
+    assert agent.description == "Handles dashboard work"
+    assert agent.system == "You are precise."
+    assert agent.version == 1
+    assert AgentVersion.objects.filter(agent=agent, version=1).exists()
+
+
+@pytest.mark.django_db
+def test_create_agent_from_dashboard_rejects_other_users_environment(logged_in_client, other_user):
+    theirs = Environment.objects.create(user=other_user, name="not-mine", version=1)
+    resp = logged_in_client.post(
+        "/ui/agents/new",
+        data={
+            "name": "Bad Agent",
+            "model": "anthropic/claude-sonnet-4-6",
+            "runtime": "claude",
+            "environment_id": str(theirs.id),
+        },
+    )
+    assert resp.status_code == 200
+    assert b"Environment not found" in resp.content
+    assert not Agent.objects.filter(name="Bad Agent").exists()
+
+
+@pytest.mark.django_db
+def test_agents_list_rejects_create_post(logged_in_client):
+    resp = logged_in_client.post("/ui/agents", data={"name": "wrong-place"})
+    assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+def test_agent_new_rejects_unsupported_methods(logged_in_client):
+    resp = logged_in_client.put("/ui/agents/new", data={"name": "wrong-method"})
+    assert resp.status_code == 405
+
+
+@pytest.mark.django_db
 def test_agent_detail_404_for_other_user(logged_in_client, other_user):
     theirs = Agent.objects.create(
         user=other_user,
@@ -214,6 +307,85 @@ def test_environment_list_and_detail(logged_in_client, user):
 
 
 @pytest.mark.django_db
+def test_environments_list_exposes_new_environment_link(logged_in_client):
+    resp = logged_in_client.get("/ui/environments")
+    assert resp.status_code == 200
+    assert b"New environment" in resp.content
+    assert b"/ui/environments/new" in resp.content
+    assert b'name="name"' not in resp.content
+
+
+@pytest.mark.django_db
+def test_environment_new_renders_create_environment_form(logged_in_client):
+    resp = logged_in_client.get("/ui/environments/new")
+    assert resp.status_code == 200
+    assert b"Create environment" in resp.content
+    assert b'name="name"' in resp.content
+    assert b'name="packages_json"' in resp.content
+    assert b'name="env_vars_json"' in resp.content
+
+
+@pytest.mark.django_db
+def test_create_environment_from_dashboard(logged_in_client, user):
+    resp = logged_in_client.post(
+        "/ui/environments/new",
+        data={
+            "name": "Dashboard Env",
+            "packages_json": '{"pip": ["pytest"]}',
+            "env_vars_json": '{"AOD_MODE": "test"}',
+            "setup_script": "echo ready",
+            "networking_type": "limited",
+            "allowed_hosts": "api.example.com\nassets.example.com",
+        },
+    )
+    env = Environment.objects.get(user=user, name="Dashboard Env")
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/environments/{env.id}"
+    assert env.packages == {"pip": ["pytest"]}
+    assert env.env_vars == {"AOD_MODE": "test"}
+    assert env.setup_script == "echo ready"
+    assert env.networking_type == "limited"
+    assert env.networking_config == {"allowed_hosts": ["api.example.com", "assets.example.com"]}
+    assert EnvironmentVersion.objects.filter(environment=env, version=1).exists()
+
+
+@pytest.mark.django_db
+def test_create_environment_from_dashboard_rejects_invalid_json(logged_in_client):
+    resp = logged_in_client.post(
+        "/ui/environments/new",
+        data={
+            "name": "Bad Env",
+            "packages_json": '{"pip": [}',
+            "env_vars_json": "{}",
+            "networking_type": "unrestricted",
+        },
+    )
+    assert resp.status_code == 200
+    assert b"Enter valid JSON" in resp.content
+    assert not Environment.objects.filter(name="Bad Env").exists()
+
+
+@pytest.mark.django_db
+def test_environments_list_rejects_create_post(logged_in_client):
+    resp = logged_in_client.post("/ui/environments", data={"name": "wrong-place"})
+    assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+def test_environment_new_rejects_unsupported_methods(logged_in_client):
+    resp = logged_in_client.put("/ui/environments/new", data={"name": "wrong-method"})
+    assert resp.status_code == 405
+
+
+@pytest.mark.django_db
+def test_environment_empty_state_does_not_claim_dashboard_is_api_only(logged_in_client):
+    resp = logged_in_client.get("/ui/environments")
+    assert resp.status_code == 200
+    assert b"Create one via the API" not in resp.content
+    assert b"Use New environment" in resp.content
+
+
+@pytest.mark.django_db
 def test_sessions_list_and_detail(logged_in_client, user):
     session = AgentSession.objects.create(
         user=user, runtime="claude", prompt="hello world", status="completed", exit_code=0
@@ -225,6 +397,14 @@ def test_sessions_list_and_detail(logged_in_client, user):
     resp = logged_in_client.get(f"/ui/sessions/{session.id}")
     assert resp.status_code == 200
     assert b"hello world" in resp.content
+
+
+@pytest.mark.django_db
+def test_sessions_empty_state_points_to_agent_page(logged_in_client):
+    resp = logged_in_client.get("/ui/sessions")
+    assert resp.status_code == 200
+    assert b"Create one via the API" not in resp.content
+    assert b"Start one from an agent page" in resp.content
 
 
 @pytest.mark.django_db
@@ -288,3 +468,177 @@ def test_agent_detail_renders_for_owner(logged_in_client, user):
     resp = logged_in_client.get(f"/ui/agents/{agent.id}")
     assert resp.status_code == 200
     assert b"Owned-Agent" in resp.content
+
+
+@pytest.mark.django_db
+def test_agent_detail_exposes_dashboard_actions(logged_in_client, user):
+    agent = Agent.objects.create(
+        user=user,
+        name="Action Agent",
+        model="anthropic/claude-sonnet-4-6",
+        runtime="claude",
+        version=1,
+    )
+    resp = logged_in_client.get(f"/ui/agents/{agent.id}")
+    assert resp.status_code == 200
+    assert b"Start session" in resp.content
+    assert f"/ui/agents/{agent.id}/sessions".encode() in resp.content
+    assert f"/ui/agents/{agent.id}/archive".encode() in resp.content
+
+
+@pytest.mark.django_db
+def test_start_session_from_agent_dashboard(logged_in_client, user, runtime_key, fake_sprites):
+    agent = Agent.objects.create(
+        user=user,
+        name="Runner",
+        model="anthropic/claude-sonnet-4-6",
+        runtime="claude",
+        system="System prep",
+        version=1,
+    )
+    resp = logged_in_client.post(
+        f"/ui/agents/{agent.id}/sessions",
+        data={"prompt": "ship it", "timeout": "120"},
+    )
+    assert resp.status_code == 302
+
+    session = AgentSession.objects.get(user=user, agent=agent)
+    assert resp.url == f"/ui/sessions/{session.id}"
+    assert session.prompt == "ship it"
+    assert session.status in {"pending", "running", "completed"}
+    assert SessionTurn.objects.filter(session=session, turn_number=1, prompt="ship it").exists()
+
+
+@pytest.mark.django_db
+def test_start_session_from_agent_dashboard_scoped_to_owner(logged_in_client, other_user):
+    theirs = Agent.objects.create(
+        user=other_user,
+        name="Theirs",
+        model="anthropic/claude-sonnet-4-6",
+        runtime="claude",
+        version=1,
+    )
+    resp = logged_in_client.post(
+        f"/ui/agents/{theirs.id}/sessions",
+        data={"prompt": "nope", "timeout": "120"},
+    )
+    assert resp.status_code == 404
+    assert not AgentSession.objects.filter(agent=theirs).exists()
+
+
+@pytest.mark.django_db
+def test_archive_agent_from_dashboard(logged_in_client, user):
+    agent = Agent.objects.create(
+        user=user,
+        name="Archive Me",
+        model="anthropic/claude-sonnet-4-6",
+        runtime="claude",
+        version=1,
+    )
+    resp = logged_in_client.post(f"/ui/agents/{agent.id}/archive")
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/agents/{agent.id}"
+
+    agent.refresh_from_db()
+    assert agent.is_archived
+
+
+@pytest.mark.django_db
+def test_archive_environment_from_dashboard(logged_in_client, user):
+    env = Environment.objects.create(user=user, name="Archive Env", version=1)
+    resp = logged_in_client.post(f"/ui/environments/{env.id}/archive")
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/environments/{env.id}"
+
+    env.refresh_from_db()
+    assert env.is_archived
+
+
+@pytest.mark.django_db
+def test_session_detail_exposes_session_actions(logged_in_client, user):
+    session = AgentSession.objects.create(
+        user=user,
+        runtime="claude",
+        prompt="hello",
+        status="completed",
+        backend_handle="sprite-one",
+    )
+    resp = logged_in_client.get(f"/ui/sessions/{session.id}")
+    assert resp.status_code == 200
+    assert b"Send follow-up" in resp.content
+    assert f"/ui/sessions/{session.id}/prompt".encode() in resp.content
+    assert f"/ui/sessions/{session.id}/terminate".encode() in resp.content
+
+
+@pytest.mark.django_db
+def test_send_followup_from_session_dashboard(logged_in_client, user, mocker):
+    session = AgentSession.objects.create(
+        user=user,
+        runtime="claude",
+        prompt="first",
+        status="completed",
+        backend_handle="sprite-one",
+    )
+    SessionTurn.objects.create(session=session, turn_number=1, prompt="first", status="completed")
+    resume = mocker.patch("agent_on_demand.session_service.resume_session")
+    enqueue = mocker.patch("agent_on_demand.session_service.tasks.execute_turn.defer")
+
+    resp = logged_in_client.post(
+        f"/ui/sessions/{session.id}/prompt",
+        data={"prompt": "next", "timeout": "300"},
+    )
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/sessions/{session.id}"
+
+    session.refresh_from_db()
+    assert session.status == "pending"
+    assert session.prompt == "next"
+    assert session.exit_code is None
+    assert SessionTurn.objects.filter(session=session, turn_number=2, prompt="next").exists()
+    resume.assert_called_once_with("sprite-one")
+    enqueue.assert_called_once()
+
+
+@pytest.mark.django_db
+def test_send_followup_from_session_dashboard_rejects_running(logged_in_client, user, mocker):
+    session = AgentSession.objects.create(
+        user=user,
+        runtime="claude",
+        prompt="first",
+        status="running",
+        backend_handle="sprite-one",
+    )
+    resume = mocker.patch("agent_on_demand.session_service.resume_session")
+
+    resp = logged_in_client.post(
+        f"/ui/sessions/{session.id}/prompt",
+        data={"prompt": "next", "timeout": "300"},
+    )
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/sessions/{session.id}"
+
+    session.refresh_from_db()
+    assert session.status == "running"
+    assert not SessionTurn.objects.filter(session=session, prompt="next").exists()
+    resume.assert_not_called()
+
+
+@pytest.mark.django_db
+def test_terminate_session_from_dashboard(logged_in_client, user, mocker):
+    session = AgentSession.objects.create(
+        user=user,
+        runtime="claude",
+        prompt="stop",
+        status="running",
+        backend_handle="sprite-one",
+    )
+    destroy = mocker.patch("agent_on_demand.session_service.destroy_session_task.defer")
+
+    resp = logged_in_client.post(f"/ui/sessions/{session.id}/terminate")
+    assert resp.status_code == 302
+    assert resp.url == f"/ui/sessions/{session.id}"
+
+    session.refresh_from_db()
+    assert session.status == "terminated"
+    assert session.backend_handle == ""
+    destroy.assert_called_once()

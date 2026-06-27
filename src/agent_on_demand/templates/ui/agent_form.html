@@ -1,0 +1,52 @@
+{% extends "ui/base.html" %}
+{% block title %}New agent · Agent on Demand{% endblock %}
+{% block content %}
+  <header class="console-header">
+    <div>
+      <span class="console-kicker"><a href="{% url 'ui-agents' %}">Agents</a></span>
+      <h1>Create agent</h1>
+      <p>Define the runtime, model, and system prompt this agent will use for sessions.</p>
+    </div>
+  </header>
+
+  <section class="action-panel action-panel-wide">
+    <div>
+      <span class="console-kicker">Definition</span>
+      <h2>Agent settings</h2>
+      <p>After creation, open the agent detail page to start a session.</p>
+    </div>
+    <form method="post" action="{% url 'ui-agent-new' %}" class="stacked-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="form-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="field-grid">
+        <label for="{{ form.name.id_for_label }}">Name</label>
+        {{ form.name }}
+        {{ form.name.errors }}
+
+        <label for="{{ form.model.id_for_label }}">Model</label>
+        {{ form.model }}
+        {{ form.model.errors }}
+
+        <label for="{{ form.runtime.id_for_label }}">Runtime</label>
+        {{ form.runtime }}
+        {{ form.runtime.errors }}
+
+        <label for="{{ form.environment_id.id_for_label }}">Environment</label>
+        {{ form.environment_id }}
+        {{ form.environment_id.errors }}
+      </div>
+      <label for="{{ form.description.id_for_label }}">Description</label>
+      {{ form.description }}
+      {{ form.description.errors }}
+      <label for="{{ form.system.id_for_label }}">System prompt</label>
+      {{ form.system }}
+      {{ form.system.errors }}
+      <div class="form-actions">
+        <button type="submit" class="button-primary">Create agent</button>
+        <a class="button-secondary" href="{% url 'ui-agents' %}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

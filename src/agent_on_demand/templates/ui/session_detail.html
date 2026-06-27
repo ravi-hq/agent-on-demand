@@ -7,7 +7,40 @@
       <h1>Session <code>{{ session.id }}</code></h1>
       <p>Run metadata, prompt, resources, and captured logs.</p>
     </div>
+    {% if session.status != "terminated" %}
+      <form method="post" action="{% url 'ui-session-terminate' session.id %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="button-danger">Terminate session</button>
+      </form>
+    {% endif %}
   </header>
+  <section class="action-panel">
+    <div>
+      <span class="console-kicker">Control</span>
+      <h2>Send follow-up</h2>
+      {% if session.status == "completed" %}
+        <p>Continue this session on the same backend workspace.</p>
+      {% elif session.status == "pending" or session.status == "running" %}
+        <p>This session is active. Wait for the current turn to complete before sending another prompt.</p>
+      {% elif session.status == "failed" %}
+        <p>Failed sessions cannot be resumed. Start a new session from the agent page.</p>
+      {% else %}
+        <p>Terminated sessions cannot be resumed. Start a new session from the agent page.</p>
+      {% endif %}
+    </div>
+    {% if session.status == "completed" %}
+      <form method="post" action="{% url 'ui-session-prompt' session.id %}" class="stacked-form">
+        {% csrf_token %}
+        <label for="{{ prompt_form.prompt.id_for_label }}">Prompt</label>
+        {{ prompt_form.prompt }}
+        <div class="form-row">
+          <label for="{{ prompt_form.timeout.id_for_label }}">Timeout seconds</label>
+          {{ prompt_form.timeout }}
+        </div>
+        <button type="submit" class="button-primary">Send follow-up</button>
+      </form>
+    {% endif %}
+  </section>
   <dl class="kv">
     <dt>Agent</dt>
     <dd>

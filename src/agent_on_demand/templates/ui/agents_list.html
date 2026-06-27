@@ -5,8 +5,9 @@
     <div>
       <span class="console-kicker">Compose</span>
       <h1>Agents</h1>
-      <p>Published agent definitions available to API clients and session runners.</p>
+      <p>Create and manage the agent definitions used by dashboard sessions and API clients.</p>
     </div>
+    <a class="console-action" href="{% url 'ui-agent-new' %}">New agent</a>
   </header>
   {% if agents %}
     <table>
@@ -27,6 +28,6 @@
       </tbody>
     </table>
   {% else %}
-    <p class="empty-state">No agents yet. Create one via the API.</p>
+    <p class="empty-state">No agents yet. Use New agent to create the first one.</p>
   {% endif %}
 {% endblock %}

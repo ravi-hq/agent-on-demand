@@ -5,7 +5,7 @@
     <div>
       <span class="console-kicker">Activity</span>
       <h1>Sessions</h1>
-      <p>Recent agent runs, their runtime, exit state, and execution status.</p>
+      <p>Review recent runs, open logs, continue completed sessions, or stop active ones.</p>
     </div>
   </header>
   {% if sessions %}
@@ -27,6 +27,6 @@
       </tbody>
     </table>
   {% else %}
-    <p class="empty-state">No sessions yet. Create one via the API.</p>
+    <p class="empty-state">No sessions yet. Start one from an agent page.</p>
   {% endif %}
 {% endblock %}

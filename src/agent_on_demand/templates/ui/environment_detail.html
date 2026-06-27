@@ -7,6 +7,12 @@
       <h1>{{ env.name }}</h1>
       <p>Runtime package, networking, and setup configuration for sessions.</p>
     </div>
+    {% if not env.archived_at %}
+      <form method="post" action="{% url 'ui-environment-archive' env.id %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="button-danger">Archive environment</button>
+      </form>
+    {% endif %}
   </header>
   <dl class="kv">
     <dt>ID</dt><dd><code>{{ env.id }}</code></dd>
