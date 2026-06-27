@@ -7,7 +7,9 @@ PROVIDER_RUNTIME: dict[str, str] = {
     "openai": "codex",
 }
 
-RUNTIME_PROVIDER: dict[str, str] = {runtime: provider for provider, runtime in PROVIDER_RUNTIME.items()}
+RUNTIME_PROVIDER: dict[str, str] = {
+    runtime: provider for provider, runtime in PROVIDER_RUNTIME.items()
+}
 
 KNOWN_PROVIDER_PREFIXES = frozenset({"anthropic", "openai", "google", "kimi"})
 
@@ -41,7 +43,9 @@ def normalize_provider_model(provider: str, model: str) -> tuple[str, str]:
     prefix, sep, suffix = model.partition("/")
     if sep and prefix in KNOWN_PROVIDER_PREFIXES:
         if prefix != provider:
-            raise ValueError(f"Model provider prefix {prefix!r} does not match provider {provider!r}")
+            raise ValueError(
+                f"Model provider prefix {prefix!r} does not match provider {provider!r}"
+            )
         model = suffix.strip()
         if not model:
             raise ValueError("Model must be a non-empty string")

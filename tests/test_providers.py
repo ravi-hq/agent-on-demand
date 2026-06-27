@@ -1,6 +1,10 @@
 import pytest
 
-from agent_on_demand.providers import normalize_provider_model, provider_for_runtime, runtime_for_provider
+from agent_on_demand.providers import (
+    normalize_provider_model,
+    provider_for_runtime,
+    runtime_for_provider,
+)
 
 
 def test_runtime_for_provider_maps_public_provider_to_internal_runtime():

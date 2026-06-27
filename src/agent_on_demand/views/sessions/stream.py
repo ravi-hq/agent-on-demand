@@ -40,9 +40,7 @@ async def stream_session(request, session_id):
                 provider = session.runtime
         yield (
             "data: "
-            + json.dumps(
-                {"type": "start", "provider": provider, "session_id": str(session.id)}
-            )
+            + json.dumps({"type": "start", "provider": provider, "session_id": str(session.id)})
             + "\n\n"
         )
 

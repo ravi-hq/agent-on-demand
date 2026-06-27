@@ -109,9 +109,7 @@ def test_deleting_agent_cascades_to_versions(user):
         model="claude-sonnet-4-6",
         version=1,
     )
-    AgentVersion.objects.create(
-        agent=a, version=1, name=a.name, provider=a.provider, model=a.model
-    )
+    AgentVersion.objects.create(agent=a, version=1, name=a.name, provider=a.provider, model=a.model)
     agent_pk = a.pk
     a.delete()
     assert not AgentVersion.objects.filter(agent_id=agent_pk).exists()

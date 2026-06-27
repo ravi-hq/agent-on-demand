@@ -250,5 +250,7 @@ def test_argv_length_is_ten():
 
 
 def test_model_is_forwarded_verbatim():
-    argv = build_claude_command(SimpleNamespace(runtime_session_id="s", model="custom-model"), "run")
+    argv = build_claude_command(
+        SimpleNamespace(runtime_session_id="s", model="custom-model"), "run"
+    )
     assert argv[argv.index("--model") + 1] == "custom-model"

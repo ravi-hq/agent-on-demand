@@ -35,7 +35,10 @@ def fake_sprites(mocker):
     mocker.patch("agent_on_demand.session_service.tasks.execute_turn.defer")
 
     from agent_on_demand.session_service.provisioning import destroy_session
-    from agent_on_demand.session_service.tasks import _provision_session_inner, provision_session_task
+    from agent_on_demand.session_service.tasks import (
+        _provision_session_inner,
+        provision_session_task,
+    )
 
     def _inline_provision(**kwargs):
         kwargs.pop("_otel_carrier", None)

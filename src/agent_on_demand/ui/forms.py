@@ -42,8 +42,7 @@ class AgentCreateForm(forms.Form):
             attrs={
                 "placeholder": "claude-sonnet or claude-opus",
                 "title": (
-                    "Use the provider's model alias/name only. Do not include "
-                    "a provider/ prefix."
+                    "Use the provider's model alias/name only. Do not include a provider/ prefix."
                 ),
             }
         ),
