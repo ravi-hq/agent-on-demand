@@ -21,6 +21,16 @@ urlpatterns = [
     path("api-keys/<int:key_id>/revoke", views.api_key_revoke, name="ui-api-key-revoke"),
     path("agents", views.agents_list, name="ui-agents"),
     path("agents/<uuid:agent_id>", views.agent_detail, name="ui-agent-detail"),
+<<<<<<< Updated upstream
+||||||| Stash base
+    path("agents/<uuid:agent_id>/archive", views.agent_archive, name="ui-agent-archive"),
+    path("agents/<uuid:agent_id>/sessions", views.agent_start_session, name="ui-agent-start-session"),
+=======
+    path("agents/<uuid:agent_id>/archive", views.agent_archive, name="ui-agent-archive"),
+    path(
+        "agents/<uuid:agent_id>/sessions", views.agent_start_session, name="ui-agent-start-session"
+    ),
+>>>>>>> Stashed changes
     path("environments", views.environments_list, name="ui-environments"),
     path(
         "environments/<uuid:environment_id>",

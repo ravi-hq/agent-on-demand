@@ -154,3 +154,310 @@ def session_detail(request, session_id):
         "ui/session_detail.html",
         {"session": session, "logs": logs, "resources": session.resources.all()},
     )
+<<<<<<< Updated upstream
+||||||| Stash base
+
+
+@require_POST
+@login_required(login_url="/ui/login")
+def session_send_prompt(request, session_id):
+    session = get_object_or_404(AgentSession, pk=session_id, user=request.user)
+    form = SessionPromptForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, _first_form_error(form))
+        return redirect("ui-session-detail", session_id=session.id)
+
+    err = check_can_accept_prompt(session.status)
+    if err is not None:
+        messages.error(request, _detail_from_json_response(err))
+        return redirect("ui-session-detail", session_id=session.id)
+
+    try:
+        session_service.resume_session(session.backend_handle)
+    except session_service.NoBackendCredentialsError as e:
+        messages.error(request, str(e))
+        return redirect("ui-session-detail", session_id=session.id)
+    except session_service.SessionHandleNotFound:
+        messages.error(request, "Session backend is no longer available; start a new session.")
+        return redirect("ui-session-detail", session_id=session.id)
+
+    prompt = form.cleaned_data["prompt"]
+    timeout = float(form.cleaned_data["timeout"])
+
+    try:
+        with transaction.atomic():
+            locked = AgentSession.objects.select_for_update().get(
+                pk=session.id,
+                user=request.user,
+            )
+            err = check_can_accept_prompt(locked.status)
+            if err is not None:
+                messages.error(request, _detail_from_json_response(err))
+                return redirect("ui-session-detail", session_id=locked.id)
+            if locked.status == "pending":
+                messages.error(request, "Session already has a pending turn.")
+                return redirect("ui-session-detail", session_id=locked.id)
+
+            next_turn_number = (
+                SessionTurn.objects.filter(session=locked).aggregate(n=Max("turn_number"))["n"]
+                or 0
+            ) + 1
+            turn = SessionTurn.objects.create(
+                session=locked,
+                turn_number=next_turn_number,
+                prompt=prompt,
+                status="pending",
+            )
+            locked.prompt = prompt
+            locked.status = "pending"
+            locked.exit_code = None
+            locked.save(update_fields=["prompt", "status", "exit_code", "updated_at"])
+            session_service.run_turn(locked, turn, prompt, "continue", timeout)
+            session = locked
+    except AgentSession.DoesNotExist as exc:
+        raise Http404("Session not found") from exc
+
+    posthog_capture(
+        request.user,
+        "session.prompt_sent",
+        properties={
+            "session_id": str(session.id),
+            "turn_number": turn.turn_number,
+            "prompt_length": len(prompt),
+            "timeout": timeout,
+            "source": "dashboard",
+        },
+    )
+    messages.success(request, "Follow-up sent.")
+    return redirect("ui-session-detail", session_id=session.id)
+
+
+@require_POST
+@login_required(login_url="/ui/login")
+def session_terminate(request, session_id):
+    try:
+        with transaction.atomic():
+            session = AgentSession.objects.select_for_update().get(
+                pk=session_id,
+                user=request.user,
+            )
+            err = check_can_terminate(session.status)
+            if err is not None:
+                messages.error(request, _detail_from_json_response(err))
+                return redirect("ui-session-detail", session_id=session.id)
+            handle = session.backend_handle
+            session.status = "terminated"
+            session.backend_handle = ""
+            session.save(update_fields=["status", "backend_handle", "updated_at"])
+    except AgentSession.DoesNotExist as exc:
+        raise Http404("Session not found") from exc
+
+    if handle:
+        session_service.destroy_session_task.defer(
+            handle=handle,
+            _otel_carrier=inject_carrier(),
+        )
+
+    posthog_capture(
+        request.user,
+        "session.terminated",
+        properties={"session_id": str(session.id), "source": "dashboard"},
+    )
+    messages.success(request, "Session terminated.")
+    return redirect("ui-session-detail", session_id=session.id)
+
+
+def _validate_agent_can_start_session(agent: Agent, user) -> str | None:
+    if agent.is_archived:
+        return "Cannot create session with archived agent."
+    if agent.environment and agent.environment.is_archived:
+        return "Cannot create session with archived environment."
+    if agent.runtime not in RUNTIMES:
+        return f"Unknown runtime: {agent.runtime}. Must be one of: {list(RUNTIMES)}"
+
+    runtime_obj = RUNTIMES[agent.runtime]
+    accepted_kinds = {f"provider:{p}" for p in runtime_obj.providers}
+    accepted_kinds |= {
+        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{agent.runtime}")
+    }
+    if not UserCredential.objects.filter(user=user, kind__in=accepted_kinds).exists():
+        return f"No API key configured for runtime: {agent.runtime}"
+
+    if agent.model not in MODELS:
+        return f"Unknown model: {agent.model}"
+    model = MODELS[agent.model]
+    if model.provider not in runtime_obj.providers:
+        return (
+            f"Runtime {agent.runtime} cannot serve model {agent.model}: "
+            f"provider {model.provider} not in {sorted(runtime_obj.providers)}"
+        )
+    if session_service.get_client() is None:
+        return "Session backend is not configured."
+    return None
+
+
+def _first_form_error(form) -> str:
+    field, errors = next(iter(form.errors.items()))
+    label = form.fields[field].label if field in form.fields else field
+    return f"{label}: {errors[0]}"
+
+
+def _detail_from_json_response(response) -> str:
+    try:
+        payload = json.loads(response.content.decode())
+    except (TypeError, ValueError):
+        return "Action failed."
+    return payload.get("detail", "Action failed.")
+=======
+
+
+@require_POST
+@login_required(login_url="/ui/login")
+def session_send_prompt(request, session_id):
+    session = get_object_or_404(AgentSession, pk=session_id, user=request.user)
+    form = SessionPromptForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, _first_form_error(form))
+        return redirect("ui-session-detail", session_id=session.id)
+
+    err = check_can_accept_prompt(session.status)
+    if err is not None:
+        messages.error(request, _detail_from_json_response(err))
+        return redirect("ui-session-detail", session_id=session.id)
+
+    try:
+        session_service.resume_session(session.backend_handle)
+    except session_service.NoBackendCredentialsError as e:
+        messages.error(request, str(e))
+        return redirect("ui-session-detail", session_id=session.id)
+    except session_service.SessionHandleNotFound:
+        messages.error(request, "Session backend is no longer available; start a new session.")
+        return redirect("ui-session-detail", session_id=session.id)
+
+    prompt = form.cleaned_data["prompt"]
+    timeout = float(form.cleaned_data["timeout"])
+
+    try:
+        with transaction.atomic():
+            locked = AgentSession.objects.select_for_update().get(
+                pk=session.id,
+                user=request.user,
+            )
+            err = check_can_accept_prompt(locked.status)
+            if err is not None:
+                messages.error(request, _detail_from_json_response(err))
+                return redirect("ui-session-detail", session_id=locked.id)
+            if locked.status == "pending":
+                messages.error(request, "Session already has a pending turn.")
+                return redirect("ui-session-detail", session_id=locked.id)
+
+            next_turn_number = (
+                SessionTurn.objects.filter(session=locked).aggregate(n=Max("turn_number"))["n"] or 0
+            ) + 1
+            turn = SessionTurn.objects.create(
+                session=locked,
+                turn_number=next_turn_number,
+                prompt=prompt,
+                status="pending",
+            )
+            locked.prompt = prompt
+            locked.status = "pending"
+            locked.exit_code = None
+            locked.save(update_fields=["prompt", "status", "exit_code", "updated_at"])
+            session_service.run_turn(locked, turn, prompt, "continue", timeout)
+            session = locked
+    except AgentSession.DoesNotExist as exc:
+        raise Http404("Session not found") from exc
+
+    posthog_capture(
+        request.user,
+        "session.prompt_sent",
+        properties={
+            "session_id": str(session.id),
+            "turn_number": turn.turn_number,
+            "prompt_length": len(prompt),
+            "timeout": timeout,
+            "source": "dashboard",
+        },
+    )
+    messages.success(request, "Follow-up sent.")
+    return redirect("ui-session-detail", session_id=session.id)
+
+
+@require_POST
+@login_required(login_url="/ui/login")
+def session_terminate(request, session_id):
+    try:
+        with transaction.atomic():
+            session = AgentSession.objects.select_for_update().get(
+                pk=session_id,
+                user=request.user,
+            )
+            err = check_can_terminate(session.status)
+            if err is not None:
+                messages.error(request, _detail_from_json_response(err))
+                return redirect("ui-session-detail", session_id=session.id)
+            handle = session.backend_handle
+            session.status = "terminated"
+            session.backend_handle = ""
+            session.save(update_fields=["status", "backend_handle", "updated_at"])
+    except AgentSession.DoesNotExist as exc:
+        raise Http404("Session not found") from exc
+
+    if handle:
+        session_service.destroy_session_task.defer(
+            handle=handle,
+            _otel_carrier=inject_carrier(),
+        )
+
+    posthog_capture(
+        request.user,
+        "session.terminated",
+        properties={"session_id": str(session.id), "source": "dashboard"},
+    )
+    messages.success(request, "Session terminated.")
+    return redirect("ui-session-detail", session_id=session.id)
+
+
+def _validate_agent_can_start_session(agent: Agent, user) -> str | None:
+    if agent.is_archived:
+        return "Cannot create session with archived agent."
+    if agent.environment and agent.environment.is_archived:
+        return "Cannot create session with archived environment."
+    if agent.runtime not in RUNTIMES:
+        return f"Unknown runtime: {agent.runtime}. Must be one of: {list(RUNTIMES)}"
+
+    runtime_obj = RUNTIMES[agent.runtime]
+    accepted_kinds = {f"provider:{p}" for p in runtime_obj.providers}
+    accepted_kinds |= {
+        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{agent.runtime}")
+    }
+    if not UserCredential.objects.filter(user=user, kind__in=accepted_kinds).exists():
+        return f"No API key configured for runtime: {agent.runtime}"
+
+    if agent.model not in MODELS:
+        return f"Unknown model: {agent.model}"
+    model = MODELS[agent.model]
+    if model.provider not in runtime_obj.providers:
+        return (
+            f"Runtime {agent.runtime} cannot serve model {agent.model}: "
+            f"provider {model.provider} not in {sorted(runtime_obj.providers)}"
+        )
+    if session_service.get_client() is None:
+        return "Session backend is not configured."
+    return None
+
+
+def _first_form_error(form) -> str:
+    field, errors = next(iter(form.errors.items()))
+    label = form.fields[field].label if field in form.fields else field
+    return f"{label}: {errors[0]}"
+
+
+def _detail_from_json_response(response) -> str:
+    try:
+        payload = json.loads(response.content.decode())
+    except (TypeError, ValueError):
+        return "Action failed."
+    return payload.get("detail", "Action failed.")
+>>>>>>> Stashed changes
