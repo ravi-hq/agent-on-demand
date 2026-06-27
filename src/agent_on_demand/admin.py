@@ -143,14 +143,14 @@ class EnvironmentAdmin(admin.ModelAdmin):
 class AgentVersionInline(admin.TabularInline):
     model = AgentVersion
     extra = 0
-    fields = ("version", "name", "model", "runtime", "created_at")
-    readonly_fields = ("version", "name", "model", "runtime", "created_at")
+    fields = ("version", "name", "provider", "model", "created_at")
+    readonly_fields = ("version", "name", "provider", "model", "created_at")
 
 
 @admin.register(Agent)
 class AgentAdmin(admin.ModelAdmin):
-    list_display = ("name", "user", "model", "runtime", "version", "archived_at", "created_at")
-    list_filter = ("runtime",)
+    list_display = ("name", "user", "provider", "model", "version", "archived_at", "created_at")
+    list_filter = ("provider",)
     search_fields = ("name", "user__email", "description")
     readonly_fields = ("id", "version", "created_at", "updated_at", "archived_at")
     inlines = [AgentVersionInline]

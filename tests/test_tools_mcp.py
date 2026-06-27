@@ -44,8 +44,8 @@ class TestCreateAgentWithMcp:
             data=json.dumps(
                 {
                     "name": "MCP Agent",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [
                         {
                             "type": "url",
@@ -70,8 +70,8 @@ class TestCreateAgentWithMcp:
             data=json.dumps(
                 {
                     "name": "No MCP",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                 }
             ),
             content_type="application/json",
@@ -88,8 +88,8 @@ class TestCreateAgentWithMcp:
             data=json.dumps(
                 {
                     "name": "Ignored Tools",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "tools": [{"type": "agent_toolset_20260401"}],
                 }
             ),
@@ -108,8 +108,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [{"type": "url", "url": "https://example.com/mcp"}],
                 }
             ),
@@ -125,8 +125,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [{"type": "url", "name": "test"}],
                 }
             ),
@@ -142,8 +142,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [{"type": "stdio", "name": "test"}],
                 }
             ),
@@ -159,8 +159,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [
                         {"name": "github", "url": "https://a.com/mcp"},
                         {"name": "github", "url": "https://b.com/mcp"},
@@ -179,8 +179,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": [{"type": "grpc", "name": "test", "url": "https://a.com"}],
                 }
             ),
@@ -197,8 +197,8 @@ class TestAgentMcpValidation:
             data=json.dumps(
                 {
                     "name": "Bad",
-                    "model": "anthropic/claude-sonnet-4-6",
-                    "runtime": "claude",
+                    "provider": "anthropic",
+                    "model": "claude-sonnet-4-6",
                     "mcp_servers": servers,
                 }
             ),
@@ -215,16 +215,16 @@ class TestUpdateAgentMcp:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             version=1,
         )
         AgentVersion.objects.create(
             agent=agent,
             version=1,
             name=agent.name,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
         )
 
         resp = client.put(
@@ -249,16 +249,16 @@ class TestUpdateAgentMcp:
         agent = Agent.objects.create(
             user=user,
             name="Agent",
-            model="anthropic/claude-sonnet-4-6",
-            runtime="claude",
+            provider="anthropic",
+            model="claude-sonnet-4-6",
             version=1,
         )
         AgentVersion.objects.create(
             agent=agent,
             version=1,
             name=agent.name,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
         )
 
         client.put(

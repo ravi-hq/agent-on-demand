@@ -20,8 +20,8 @@ from aod import Client
 with Client(token="aod_...") as client:
     agent = client.agents.create(
         name="demo",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet",
     )
     ack = client.sessions.create(agent_id=agent.id, prompt="Say hello.")
     with client.sessions.stream(ack.id) as events:

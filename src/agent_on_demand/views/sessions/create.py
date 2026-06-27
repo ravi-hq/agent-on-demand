@@ -17,7 +17,7 @@ from agent_on_demand.models import (
     UserQuota,
 )
 from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR, UserCredential
-from agent_on_demand.models_catalog import MODELS
+from agent_on_demand.providers import runtime_for_provider
 from agent_on_demand.runtimes import RUNTIMES
 from agent_on_demand.session_service.tracing import inject_carrier
 from agent_on_demand.views._helpers import parse_request_body
@@ -70,10 +70,14 @@ def _create_session(request):
                 {"detail": "Cannot create session with archived environment"}, status=409
             )
 
-    runtime = agent_obj.runtime
-    if runtime not in RUNTIMES:
+    try:
+        try:
+            runtime = runtime_for_provider(agent_obj.provider)
+        except ValueError as exc:
+            return JsonResponse({"detail": str(exc)}, status=422)
+    except ValueError as exc:
         return JsonResponse(
-            {"detail": f"Unknown runtime: {runtime}. Must be one of: {list(RUNTIMES)}"},
+            {"detail": str(exc)},
             status=400,
         )
 
@@ -91,28 +95,8 @@ def _create_session(request):
     ).exists()
     if not has_credential:
         return JsonResponse(
-            {"detail": f"No API key configured for runtime: {runtime}"},
+            {"detail": f"No API key configured for provider: {agent_obj.provider}"},
             status=400,
-        )
-
-    # Agent's model must be known and servable by the agent's runtime.
-    # An unknown model is rejected immediately rather than silently skipping
-    # the provider compatibility check and failing later at provision time.
-    if agent_obj.model not in MODELS:
-        return JsonResponse(
-            {"detail": f"Unknown model: {agent_obj.model}"},
-            status=422,
-        )
-    model = MODELS[agent_obj.model]
-    if model.provider not in runtime_obj.providers:
-        return JsonResponse(
-            {
-                "detail": (
-                    f"Runtime {runtime} cannot serve model {agent_obj.model}: "
-                    f"provider {model.provider} not in {sorted(runtime_obj.providers)}"
-                )
-            },
-            status=422,
         )
 
     # Sync pre-check so a misconfigured deploy (missing platform backend token)
@@ -199,6 +183,7 @@ def _create_session(request):
             "session_id": str(session.id),
             "agent_id": str(agent_obj.id),
             "environment_id": str(environment_obj.id) if environment_obj else None,
+            "provider": agent_obj.provider,
             "runtime": runtime,
             "model": agent_obj.model,
             "prompt_length": len(req.prompt),

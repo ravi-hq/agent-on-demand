@@ -54,7 +54,7 @@
         <a href="{% url 'ui-environment-detail' session.environment.id %}">{{ session.environment.name }}</a>
       {% else %}<span class="muted">-</span>{% endif %}
     </dd>
-    <dt>Runtime</dt><dd>{{ session.runtime }}</dd>
+    <dt>Provider</dt><dd>{% if session.agent %}{{ session.agent.provider }}{% else %}<span class="muted">-</span>{% endif %}</dd>
     <dt>Status</dt><dd><span class="status-pill{% if session.status != 'completed' %} muted{% endif %}">{{ session.status }}</span></dd>
     <dt>Exit code</dt><dd>{% if session.exit_code is not None %}{{ session.exit_code }}{% else %}<span class="muted">-</span>{% endif %}</dd>
     <dt>Backend handle</dt><dd>{% if session.backend_handle %}<code>{{ session.backend_handle }}</code>{% else %}<span class="muted">-</span>{% endif %}</dd>

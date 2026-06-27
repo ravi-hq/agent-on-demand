@@ -25,7 +25,7 @@ from agent_on_demand.runtimes.codex_command import build_codex_command
 
 
 def _spec():
-    return SimpleNamespace()
+    return SimpleNamespace(model="o3")
 
 
 # ---------- exact argv for each mode ----------
@@ -38,6 +38,8 @@ def test_run_mode_produces_exact_argv():
     assert build_codex_command(_spec(), "run") == [
         "codex",
         "exec",
+        "-m",
+        "o3",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]
@@ -53,6 +55,8 @@ def test_continue_mode_produces_exact_argv():
         "exec",
         "resume",
         "--last",
+        "-m",
+        "o3",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]
@@ -155,6 +159,13 @@ def test_no_third_branch_creeps_in_for_run():
     assert build_codex_command(_spec(), "run") == [
         "codex",
         "exec",
+        "-m",
+        "o3",
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]
+
+
+def test_model_is_forwarded_verbatim():
+    argv = build_codex_command(SimpleNamespace(model="gpt-custom"), "run")
+    assert argv[argv.index("-m") + 1] == "gpt-custom"

@@ -33,7 +33,11 @@ def user(db):
 @pytest.mark.django_db
 def test_agent_str_contains_name_and_version(user):
     a = Agent.objects.create(
-        user=user, name="My Agent", model="anthropic/claude-sonnet-4-6", runtime="claude", version=3
+        user=user,
+        name="My Agent",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=3,
     )
     s = str(a)
     assert "My Agent" in s
@@ -44,10 +48,14 @@ def test_agent_str_contains_name_and_version(user):
 @pytest.mark.django_db
 def test_agent_version_str_includes_agent_name_and_version(user):
     a = Agent.objects.create(
-        user=user, name="V Agent", model="anthropic/claude-sonnet-4-6", runtime="claude", version=2
+        user=user,
+        name="V Agent",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=2,
     )
     av = AgentVersion.objects.create(
-        agent=a, version=2, name=a.name, model=a.model, runtime=a.runtime
+        agent=a, version=2, name=a.name, provider=a.provider, model=a.model
     )
     s = str(av)
     assert "V Agent" in s

@@ -193,13 +193,17 @@ def test_api_key_revoke_scoped_to_owner(logged_in_client, other_user):
 @pytest.mark.django_db
 def test_agents_list_only_shows_owned(logged_in_client, user, other_user):
     mine = Agent.objects.create(
-        user=user, name="mine", model="anthropic/claude-sonnet-4-6", runtime="claude", version=1
+        user=user,
+        name="mine",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
+        version=1,
     )
     theirs = Agent.objects.create(
         user=other_user,
         name="theirs",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.get("/ui/agents")
@@ -224,8 +228,11 @@ def test_agent_new_renders_create_agent_form(logged_in_client):
     assert resp.status_code == 200
     assert b"Create agent" in resp.content
     assert b'name="name"' in resp.content
+    assert b'name="provider"' in resp.content
     assert b'name="model"' in resp.content
-    assert b'name="runtime"' in resp.content
+    assert b'placeholder="claude-sonnet or claude-opus"' in resp.content
+    assert b'id="model-help"' not in resp.content
+    assert b'name="runtime"' not in resp.content
 
 
 @pytest.mark.django_db
@@ -234,8 +241,8 @@ def test_create_agent_from_dashboard(logged_in_client, user):
         "/ui/agents/new",
         data={
             "name": "Dashboard Agent",
-            "model": "anthropic/claude-sonnet-4-6",
-            "runtime": "claude",
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
             "description": "Handles dashboard work",
             "system": "You are precise.",
             "environment_id": "",
@@ -244,8 +251,8 @@ def test_create_agent_from_dashboard(logged_in_client, user):
     agent = Agent.objects.get(user=user, name="Dashboard Agent")
     assert resp.status_code == 302
     assert resp.url == f"/ui/agents/{agent.id}"
-    assert agent.model == "anthropic/claude-sonnet-4-6"
-    assert agent.runtime == "claude"
+    assert agent.provider == "anthropic"
+    assert agent.model == "claude-sonnet-4-6"
     assert agent.description == "Handles dashboard work"
     assert agent.system == "You are precise."
     assert agent.version == 1
@@ -259,8 +266,8 @@ def test_create_agent_from_dashboard_rejects_other_users_environment(logged_in_c
         "/ui/agents/new",
         data={
             "name": "Bad Agent",
-            "model": "anthropic/claude-sonnet-4-6",
-            "runtime": "claude",
+            "provider": "anthropic",
+            "model": "claude-sonnet-4-6",
             "environment_id": str(theirs.id),
         },
     )
@@ -286,8 +293,8 @@ def test_agent_detail_404_for_other_user(logged_in_client, other_user):
     theirs = Agent.objects.create(
         user=other_user,
         name="theirs",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.get(f"/ui/agents/{theirs.id}")
@@ -461,8 +468,8 @@ def test_agent_detail_renders_for_owner(logged_in_client, user):
     agent = Agent.objects.create(
         user=user,
         name="Owned-Agent",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.get(f"/ui/agents/{agent.id}")
@@ -475,8 +482,8 @@ def test_agent_detail_exposes_dashboard_actions(logged_in_client, user):
     agent = Agent.objects.create(
         user=user,
         name="Action Agent",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.get(f"/ui/agents/{agent.id}")
@@ -491,8 +498,8 @@ def test_start_session_from_agent_dashboard(logged_in_client, user, runtime_key,
     agent = Agent.objects.create(
         user=user,
         name="Runner",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         system="System prep",
         version=1,
     )
@@ -514,8 +521,8 @@ def test_start_session_from_agent_dashboard_scoped_to_owner(logged_in_client, ot
     theirs = Agent.objects.create(
         user=other_user,
         name="Theirs",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.post(
@@ -531,8 +538,8 @@ def test_archive_agent_from_dashboard(logged_in_client, user):
     agent = Agent.objects.create(
         user=user,
         name="Archive Me",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = logged_in_client.post(f"/ui/agents/{agent.id}/archive")

@@ -35,7 +35,6 @@ have a child README because they are a two-file SSE replay surface.
 - `apps.py` registers startup hooks: signals, OpenTelemetry, PostHog, and
   SQLite test pragmas.
 - `crypto.py` encrypts stored user credentials.
-- `models_catalog.py` declares canonical model ids and providers.
 - `observability.py` configures OpenTelemetry and library instrumentation.
 - `session_state.py` centralizes allowed session lifecycle transitions.
 - `tasks.py` imports worker tasks so Django/Procrastinate can discover them.

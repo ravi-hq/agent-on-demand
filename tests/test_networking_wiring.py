@@ -51,8 +51,8 @@ def agent(user):
     return Agent.objects.create(
         user=user,
         name="Test Agent",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
 

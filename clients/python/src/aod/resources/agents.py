@@ -41,8 +41,8 @@ def _normalize_mcp_servers(
 def _create_body(
     *,
     name: str,
+    provider: str,
     model: str,
-    runtime: str,
     system: str | None = None,
     description: str | None = None,
     environment_id: str | UUID | None = None,
@@ -50,7 +50,7 @@ def _create_body(
     mcp_servers: list[McpServerInput] | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    body: dict[str, Any] = {"name": name, "model": model, "runtime": runtime}
+    body: dict[str, Any] = {"name": name, "provider": provider, "model": model}
     if system is not None:
         body["system"] = system
     if description is not None:
@@ -72,8 +72,8 @@ def _update_body(
     *,
     version: int,
     name: str | None = None,
+    provider: str | None = None,
     model: str | None = None,
-    runtime: str | None = None,
     system: str | None = None,
     description: str | None = None,
     environment_id: str | UUID | None = None,
@@ -84,10 +84,10 @@ def _update_body(
     body: dict[str, Any] = {"version": version}
     if name is not None:
         body["name"] = name
+    if provider is not None:
+        body["provider"] = provider
     if model is not None:
         body["model"] = model
-    if runtime is not None:
-        body["runtime"] = runtime
     if system is not None:
         body["system"] = system
     if description is not None:
@@ -117,8 +117,8 @@ class Agents:
         self,
         *,
         name: str,
+        provider: str,
         model: str,
-        runtime: str,
         system: str | None = None,
         description: str | None = None,
         environment_id: str | UUID | None = None,
@@ -128,8 +128,8 @@ class Agents:
     ) -> Agent:
         body = _create_body(
             name=name,
+            provider=provider,
             model=model,
-            runtime=runtime,
             system=system,
             description=description,
             environment_id=environment_id,
@@ -148,8 +148,8 @@ class Agents:
         *,
         version: int,
         name: str | None = None,
+        provider: str | None = None,
         model: str | None = None,
-        runtime: str | None = None,
         system: str | None = None,
         description: str | None = None,
         environment_id: str | UUID | None = None,
@@ -160,8 +160,8 @@ class Agents:
         body = _update_body(
             version=version,
             name=name,
+            provider=provider,
             model=model,
-            runtime=runtime,
             system=system,
             description=description,
             environment_id=environment_id,
@@ -195,8 +195,8 @@ class AsyncAgents:
         self,
         *,
         name: str,
+        provider: str,
         model: str,
-        runtime: str,
         system: str | None = None,
         description: str | None = None,
         environment_id: str | UUID | None = None,
@@ -206,8 +206,8 @@ class AsyncAgents:
     ) -> Agent:
         body = _create_body(
             name=name,
+            provider=provider,
             model=model,
-            runtime=runtime,
             system=system,
             description=description,
             environment_id=environment_id,
@@ -226,8 +226,8 @@ class AsyncAgents:
         *,
         version: int,
         name: str | None = None,
+        provider: str | None = None,
         model: str | None = None,
-        runtime: str | None = None,
         system: str | None = None,
         description: str | None = None,
         environment_id: str | UUID | None = None,
@@ -238,8 +238,8 @@ class AsyncAgents:
         body = _update_body(
             version=version,
             name=name,
+            provider=provider,
             model=model,
-            runtime=runtime,
             system=system,
             description=description,
             environment_id=environment_id,

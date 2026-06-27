@@ -698,9 +698,10 @@ components:
           type: string
           nullable: true
           description: System prompt prepended to first-turn user prompts.
-        model:
+        provider:
           type: string
-        runtime:
+          enum: [anthropic, openai]
+        model:
           type: string
         environment_id:
           type: string
@@ -732,18 +733,18 @@ components:
 
     AgentCreate:
       type: object
-      required: [name, model, runtime]
+      required: [name, provider, model]
       properties:
         name:
           type: string
           maxLength: 200
+        provider:
+          type: string
+          enum: [anthropic, openai]
         model:
           type: string
           maxLength: 100
-          description: Must match one of the known `AgentModel` values.
-        runtime:
-          type: string
-          maxLength: 32
+          description: Free-form provider model name, for example `claude-sonnet` or `gpt-4o`. Matching `provider/` prefixes are accepted and normalized.
         system:
           type: string
           default: ""
@@ -777,9 +778,10 @@ components:
           description: Current version — optimistic concurrency check.
         name:
           type: string
-        model:
+        provider:
           type: string
-        runtime:
+          enum: [anthropic, openai]
+        model:
           type: string
         system:
           type: string
@@ -824,9 +826,10 @@ components:
         system:
           type: string
           nullable: true
-        model:
+        provider:
           type: string
-        runtime:
+          enum: [anthropic, openai]
+        model:
           type: string
         environment_id:
           type: string
@@ -1002,7 +1005,7 @@ components:
           type: string
           format: uuid
           nullable: true
-        runtime:
+        provider:
           type: string
         status:
           type: string

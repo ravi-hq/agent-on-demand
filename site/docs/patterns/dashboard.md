@@ -40,7 +40,7 @@ def list_sessions() -> list[Session]:
     return client.sessions.list()  # newest first
 ```
 
-Each `Session` is a typed pydantic model with `id`, `status`, `runtime`,
+Each `Session` is a typed pydantic model with `id`, `status`, `provider`,
 `created_at`, `updated_at`, `resources`, `turn_count`, and `current_turn`.
 
 ## Streaming to the browser

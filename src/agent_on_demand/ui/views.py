@@ -26,7 +26,7 @@ from agent_on_demand.models import (
     UserQuota,
 )
 from agent_on_demand.models.auth import CREDENTIAL_ENV_VAR, UserCredential
-from agent_on_demand.models_catalog import MODELS
+from agent_on_demand.providers import normalize_provider_model, runtime_for_provider
 from agent_on_demand.runtimes import RUNTIMES
 from agent_on_demand.session_service.tracing import inject_carrier
 from agent_on_demand.session_state import check_can_accept_prompt, check_can_terminate
@@ -37,7 +37,6 @@ from agent_on_demand.ui.forms import (
     RegisterForm,
     SessionPromptForm,
 )
-from agent_on_demand.validation.runtime_model_compat import check_runtime_model_compat
 
 
 def landing(request):
@@ -203,11 +202,12 @@ def agent_start_session(request, agent_id):
             )
             return redirect("ui-agent-detail", agent_id=agent.id)
 
+        runtime = runtime_for_provider(agent.provider)
         session = AgentSession.objects.create(
             user=request.user,
             agent=agent,
             environment=environment,
-            runtime=agent.runtime,
+            runtime=runtime,
             prompt=prompt,
             backend_handle=name,
             runtime_session_id=runtime_session_id,
@@ -239,7 +239,8 @@ def agent_start_session(request, agent_id):
             "session_id": str(session.id),
             "agent_id": str(agent.id),
             "environment_id": str(environment.id) if environment else None,
-            "runtime": agent.runtime,
+            "provider": agent.provider,
+            "runtime": runtime,
             "model": agent.model,
             "prompt_length": len(prompt),
             "repo_count": 0,
@@ -271,21 +272,15 @@ def agent_archive(request, agent_id):
 
 
 def _create_agent_from_form(request, form: AgentCreateForm) -> Agent | None:
-    model = form.cleaned_data["model"]
-    runtime = form.cleaned_data["runtime"]
+    try:
+        provider, model = normalize_provider_model(
+            form.cleaned_data["provider"],
+            form.cleaned_data["model"],
+        )
+    except ValueError as exc:
+        form.add_error("model", str(exc))
+        return None
     environment_id = form.cleaned_data["environment_id"].strip()
-
-    if runtime not in RUNTIMES:
-        form.add_error("runtime", f"Unknown runtime: {runtime}.")
-        return None
-    if model not in MODELS:
-        form.add_error("model", f"Unknown model: {model}.")
-        return None
-
-    compat_err = check_runtime_model_compat(RUNTIMES[runtime], MODELS[model])
-    if compat_err is not None:
-        form.add_error("model", compat_err)
-        return None
 
     environment = None
     if environment_id:
@@ -305,8 +300,8 @@ def _create_agent_from_form(request, form: AgentCreateForm) -> Agent | None:
             name=form.cleaned_data["name"],
             description=form.cleaned_data["description"],
             system=form.cleaned_data["system"],
+            provider=provider,
             model=model,
-            runtime=runtime,
             environment=environment,
             version=1,
         )
@@ -316,8 +311,8 @@ def _create_agent_from_form(request, form: AgentCreateForm) -> Agent | None:
             name=agent.name,
             description=agent.description,
             system=agent.system,
+            provider=agent.provider,
             model=agent.model,
-            runtime=agent.runtime,
             environment=agent.environment,
             skills=agent.skills,
             mcp_servers=agent.mcp_servers,
@@ -329,7 +324,7 @@ def _create_agent_from_form(request, form: AgentCreateForm) -> Agent | None:
         "agent.created",
         properties={
             "agent_id": str(agent.id),
-            "runtime": agent.runtime,
+            "provider": agent.provider,
             "model": agent.model,
             "has_environment": agent.environment_id is not None,
             "system_length": len(agent.system or ""),
@@ -581,25 +576,18 @@ def _validate_agent_can_start_session(agent: Agent, user) -> str | None:
         return "Cannot create session with archived agent."
     if agent.environment and agent.environment.is_archived:
         return "Cannot create session with archived environment."
-    if agent.runtime not in RUNTIMES:
-        return f"Unknown runtime: {agent.runtime}. Must be one of: {list(RUNTIMES)}"
+    try:
+        runtime = runtime_for_provider(agent.provider)
+    except ValueError as exc:
+        return str(exc)
 
-    runtime_obj = RUNTIMES[agent.runtime]
+    runtime_obj = RUNTIMES[runtime]
     accepted_kinds = {f"provider:{p}" for p in runtime_obj.providers}
     accepted_kinds |= {
-        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{agent.runtime}")
+        kind for kind in CREDENTIAL_ENV_VAR if kind.startswith(f"runtime_token:{runtime}")
     }
     if not UserCredential.objects.filter(user=user, kind__in=accepted_kinds).exists():
-        return f"No API key configured for runtime: {agent.runtime}"
-
-    if agent.model not in MODELS:
-        return f"Unknown model: {agent.model}"
-    model = MODELS[agent.model]
-    if model.provider not in runtime_obj.providers:
-        return (
-            f"Runtime {agent.runtime} cannot serve model {agent.model}: "
-            f"provider {model.provider} not in {sorted(runtime_obj.providers)}"
-        )
+        return f"No API key configured for provider: {agent.provider}"
     if session_service.get_client() is None:
         return "Session backend is not configured."
     return None

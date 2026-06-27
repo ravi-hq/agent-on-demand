@@ -19,10 +19,17 @@ import requests
 
 # Cheapest model per runtime for fast, inexpensive tests
 RUNTIME_MODELS = {
-    "claude": "anthropic/claude-haiku-4-5",
-    "codex": "openai/o4-mini",
-    "gemini": "google/gemini-2.5-flash",
-    "opencode": "anthropic/claude-haiku-4-5",
+    "claude": "claude-haiku-4-5",
+    "codex": "o4-mini",
+    "gemini": "gemini-2.5-flash",
+    "opencode": "claude-haiku-4-5",
+}
+
+RUNTIME_PROVIDERS = {
+    "claude": "anthropic",
+    "codex": "openai",
+    "gemini": "google",
+    "opencode": "anthropic",
 }
 
 DEFAULT_TIMEOUT = int(os.environ.get("E2E_TIMEOUT", "180"))
@@ -65,6 +72,14 @@ class APIClient:
 
     # -- Agents ---------------------------------------------------------------
     def create_agent(self, **kw):
+        runtime = kw.pop("runtime", None)
+        if runtime and "provider" not in kw:
+            kw["provider"] = RUNTIME_PROVIDERS[runtime]
+        model = kw.get("model")
+        if isinstance(model, str) and "/" in model:
+            prefix, value = model.split("/", 1)
+            if kw.get("provider") == prefix:
+                kw["model"] = value
         return self.http.post(self._url("/agents"), json=kw)
 
     def get_agent(self, aid):

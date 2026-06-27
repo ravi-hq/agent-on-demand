@@ -37,12 +37,16 @@ def build_codex_command(spec: SessionSpec, mode: Literal["run", "continue"]) -> 
             "exec",
             "resume",
             "--last",
+            "-m",
+            spec.model,
             "--dangerously-bypass-approvals-and-sandbox",
             "--json",
         ]
     return [
         "codex",
         "exec",
+        "-m",
+        spec.model,
         "--dangerously-bypass-approvals-and-sandbox",
         "--json",
     ]

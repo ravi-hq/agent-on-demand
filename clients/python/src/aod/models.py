@@ -203,8 +203,8 @@ class Agent(_Model):
     name: str
     description: str | None = None
     system: str | None = None
+    provider: str
     model: str
-    runtime: str
     environment_id: UUID | None = None
     skills: list[dict[str, Any]] = Field(default_factory=list)
     mcp_servers: list[McpServer] = Field(default_factory=list)
@@ -221,8 +221,8 @@ class AgentVersion(_Model):
     name: str
     description: str | None = None
     system: str | None = None
+    provider: str
     model: str
-    runtime: str
     environment_id: UUID | None = None
     skills: list[dict[str, Any]] = Field(default_factory=list)
     mcp_servers: list[McpServer] = Field(default_factory=list)
@@ -259,7 +259,7 @@ class Session(_Model):
     id: UUID
     agent_id: UUID | None = None
     environment_id: UUID | None = None
-    runtime: str
+    provider: str
     status: SessionStatus
     exit_code: int | None = None
     created_at: datetime

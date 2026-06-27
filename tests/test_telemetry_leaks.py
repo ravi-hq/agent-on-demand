@@ -91,8 +91,8 @@ def test_agent_archived_event_emits_id_only(client: Client, auth_headers, user, 
         user=user,
         name="A",
         system=SECRET_SYSTEM,
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     captured_events.clear()
@@ -112,8 +112,8 @@ def test_agent_updated_event_excludes_system_and_skill_content(
     agent = Agent.objects.create(
         user=user,
         name="A",
-        model="anthropic/claude-sonnet-4-6",
-        runtime="claude",
+        provider="anthropic",
+        model="claude-sonnet-4-6",
         version=1,
     )
     resp = client.put(

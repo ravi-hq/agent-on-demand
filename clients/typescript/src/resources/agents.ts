@@ -3,8 +3,8 @@ import type { Agent, AgentVersion, McpServer } from "../types.js";
 
 export interface AgentCreateParams {
   name: string;
+  provider: string;
   model: string;
-  runtime: string;
   system?: string;
   description?: string;
   environment_id?: string;
@@ -16,8 +16,8 @@ export interface AgentCreateParams {
 export interface AgentUpdateParams {
   version: number;
   name?: string;
+  provider?: string;
   model?: string;
-  runtime?: string;
   system?: string;
   description?: string;
   // Pass `null` to detach the current environment from the agent.

@@ -14,8 +14,8 @@ class Agent(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, default="")
     system = models.TextField(blank=True, default="")
+    provider = models.CharField(max_length=32)
     model = models.CharField(max_length=100)
-    runtime = models.CharField(max_length=32)
     environment = models.ForeignKey(
         Environment, on_delete=models.SET_NULL, null=True, blank=True, related_name="agents"
     )
@@ -44,8 +44,8 @@ class AgentVersion(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, default="")
     system = models.TextField(blank=True, default="")
+    provider = models.CharField(max_length=32)
     model = models.CharField(max_length=100)
-    runtime = models.CharField(max_length=32)
     environment = models.ForeignKey(Environment, on_delete=models.SET_NULL, null=True, blank=True)
     skills = models.JSONField(default=list, blank=True)
     mcp_servers = models.JSONField(default=list, blank=True)

@@ -25,8 +25,8 @@ const client = new Client({
 
 const agent = await client.agents.create({
   name: "hello",
-  model: "anthropic/claude-sonnet-4-6",
-  runtime: "claude",
+  provider: "anthropic",
+  model: "claude-sonnet",
 });
 
 const ack = await client.sessions.create({

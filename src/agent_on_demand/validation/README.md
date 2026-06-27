@@ -11,7 +11,6 @@ shared across API views and tests.
 - `mcp_server_validation.py` validates MCP server shape and limits.
 - `skill_validation.py` validates inline and GitHub skill references.
 - `metadata_merge.py` merges metadata patches.
-- `runtime_model_compat.py` checks whether a runtime can serve a model.
 
 ## Rule Of Thumb
 
