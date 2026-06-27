@@ -215,7 +215,7 @@ def test_agents_list_exposes_new_agent_link_not_create_form(logged_in_client):
     assert b"New agent" in resp.content
     assert b"/ui/agents/new" in resp.content
     assert b"Create one via the API" not in resp.content
-    assert b"name=\"name\"" not in resp.content
+    assert b'name="name"' not in resp.content
 
 
 @pytest.mark.django_db
@@ -223,9 +223,9 @@ def test_agent_new_renders_create_agent_form(logged_in_client):
     resp = logged_in_client.get("/ui/agents/new")
     assert resp.status_code == 200
     assert b"Create agent" in resp.content
-    assert b"name=\"name\"" in resp.content
-    assert b"name=\"model\"" in resp.content
-    assert b"name=\"runtime\"" in resp.content
+    assert b'name="name"' in resp.content
+    assert b'name="model"' in resp.content
+    assert b'name="runtime"' in resp.content
 
 
 @pytest.mark.django_db
@@ -253,9 +253,7 @@ def test_create_agent_from_dashboard(logged_in_client, user):
 
 
 @pytest.mark.django_db
-def test_create_agent_from_dashboard_rejects_other_users_environment(
-    logged_in_client, other_user
-):
+def test_create_agent_from_dashboard_rejects_other_users_environment(logged_in_client, other_user):
     theirs = Environment.objects.create(user=other_user, name="not-mine", version=1)
     resp = logged_in_client.post(
         "/ui/agents/new",
@@ -314,7 +312,7 @@ def test_environments_list_exposes_new_environment_link(logged_in_client):
     assert resp.status_code == 200
     assert b"New environment" in resp.content
     assert b"/ui/environments/new" in resp.content
-    assert b"name=\"name\"" not in resp.content
+    assert b'name="name"' not in resp.content
 
 
 @pytest.mark.django_db
@@ -322,9 +320,9 @@ def test_environment_new_renders_create_environment_form(logged_in_client):
     resp = logged_in_client.get("/ui/environments/new")
     assert resp.status_code == 200
     assert b"Create environment" in resp.content
-    assert b"name=\"name\"" in resp.content
-    assert b"name=\"packages_json\"" in resp.content
-    assert b"name=\"env_vars_json\"" in resp.content
+    assert b'name="name"' in resp.content
+    assert b'name="packages_json"' in resp.content
+    assert b'name="env_vars_json"' in resp.content
 
 
 @pytest.mark.django_db
@@ -347,9 +345,7 @@ def test_create_environment_from_dashboard(logged_in_client, user):
     assert env.env_vars == {"AOD_MODE": "test"}
     assert env.setup_script == "echo ready"
     assert env.networking_type == "limited"
-    assert env.networking_config == {
-        "allowed_hosts": ["api.example.com", "assets.example.com"]
-    }
+    assert env.networking_config == {"allowed_hosts": ["api.example.com", "assets.example.com"]}
     assert EnvironmentVersion.objects.filter(environment=env, version=1).exists()
 
 
@@ -491,9 +487,7 @@ def test_agent_detail_exposes_dashboard_actions(logged_in_client, user):
 
 
 @pytest.mark.django_db
-def test_start_session_from_agent_dashboard(
-    logged_in_client, user, runtime_key, fake_sprites
-):
+def test_start_session_from_agent_dashboard(logged_in_client, user, runtime_key, fake_sprites):
     agent = Agent.objects.create(
         user=user,
         name="Runner",

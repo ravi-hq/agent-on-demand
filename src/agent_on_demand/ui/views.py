@@ -509,8 +509,7 @@ def session_send_prompt(request, session_id):
                 return redirect("ui-session-detail", session_id=locked.id)
 
             next_turn_number = (
-                SessionTurn.objects.filter(session=locked).aggregate(n=Max("turn_number"))["n"]
-                or 0
+                SessionTurn.objects.filter(session=locked).aggregate(n=Max("turn_number"))["n"] or 0
             ) + 1
             turn = SessionTurn.objects.create(
                 session=locked,

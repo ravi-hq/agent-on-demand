@@ -23,7 +23,9 @@ urlpatterns = [
     path("agents/new", views.agent_new, name="ui-agent-new"),
     path("agents/<uuid:agent_id>", views.agent_detail, name="ui-agent-detail"),
     path("agents/<uuid:agent_id>/archive", views.agent_archive, name="ui-agent-archive"),
-    path("agents/<uuid:agent_id>/sessions", views.agent_start_session, name="ui-agent-start-session"),
+    path(
+        "agents/<uuid:agent_id>/sessions", views.agent_start_session, name="ui-agent-start-session"
+    ),
     path("environments", views.environments_list, name="ui-environments"),
     path("environments/new", views.environment_new, name="ui-environment-new"),
     path(

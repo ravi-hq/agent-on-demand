@@ -127,11 +127,7 @@ class EnvironmentCreateForm(forms.Form):
         cleaned = super().clean()
         networking_type = cleaned.get("networking_type") or "unrestricted"
         allowed_hosts_raw = cleaned.get("allowed_hosts") or ""
-        allowed_hosts = [
-            line.strip()
-            for line in allowed_hosts_raw.splitlines()
-            if line.strip()
-        ]
+        allowed_hosts = [line.strip() for line in allowed_hosts_raw.splitlines() if line.strip()]
         networking = {"type": networking_type}
         if networking_type == "limited":
             networking["allowed_hosts"] = allowed_hosts
