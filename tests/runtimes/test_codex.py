@@ -3,10 +3,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from django.contrib.auth.models import User
 
-from agent_on_demand.runtimes.codex import CodexRuntime
+from agent_on_demand.models import Environment
+from agent_on_demand.runtimes.codex import CODEX_AUTH_PATH, CodexRuntime
 from agent_on_demand.session_service.errors import ProvisionError
 from agent_on_demand.session_service.specs import McpServerSpec, SessionSpec
 from tests.fakes.sprite import RecordingSprite
@@ -17,17 +20,23 @@ def user(db):
     return User.objects.create_user(username="codexuser", password="p")
 
 
-def _spec(user) -> SessionSpec:
+def _spec(
+    user,
+    *,
+    secret_env_vars: dict[str, str] | None = None,
+    environment: Environment | None = None,
+) -> SessionSpec:
     return SessionSpec(
         name="sprite-x",
         runtime=CodexRuntime(),
         model="gpt-4.1",
         user=user,
         runtime_session_id=None,
-        environment=None,
+        environment=environment,
         repos=[],
         mcp_servers=[],
         skills=[],
+        secret_env_vars=secret_env_vars or {},
     )
 
 
@@ -103,10 +112,85 @@ def test_write_config_bearer_token_env_var(user):
 
 
 @pytest.mark.django_db
-def test_write_config_empty_mcp_servers_writes_nothing(user):
+def test_write_config_empty_mcp_servers_writes_no_toml(user):
     sprite = RecordingSprite("s")
     CodexRuntime().write_config(sprite, _spec(user), [])
     assert "/home/sprite/.codex/config.toml" not in sprite.write_map()
+
+
+# --- auth.json (API-key auth) ------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_write_config_writes_auth_json_from_secret_env_vars(user):
+    """The OpenAI key in secret_env_vars must land in ~/.codex/auth.json —
+    Codex's exec path won't read a bare OPENAI_API_KEY env var, so without
+    this the turn 401s with 'Missing bearer'."""
+    sprite = RecordingSprite("s")
+    spec = _spec(user, secret_env_vars={"OPENAI_API_KEY": "sk-proj-secret"})
+    CodexRuntime().write_config(sprite, spec, [])
+    auth = sprite.write_map()[CODEX_AUTH_PATH]
+    assert json.loads(auth) == {"OPENAI_API_KEY": "sk-proj-secret"}
+
+
+@pytest.mark.django_db
+def test_write_config_chmods_auth_json_0600(user):
+    """Codex refuses an auth.json that is group/world-readable."""
+    sprite = RecordingSprite("s")
+    spec = _spec(user, secret_env_vars={"OPENAI_API_KEY": "sk-x"})
+    CodexRuntime().write_config(sprite, spec, [])
+    assert sprite.chmod_map()[CODEX_AUTH_PATH] == 0o600
+
+
+@pytest.mark.django_db
+def test_write_config_auth_json_falls_back_to_environment_env_vars(user):
+    """When no session secret carries the key, fall back to the Environment's
+    env_vars so an org that pins OPENAI_API_KEY on the Environment still auths."""
+    env = Environment.objects.create(
+        user=user, name="e", env_vars={"OPENAI_API_KEY": "sk-from-env"}
+    )
+    sprite = RecordingSprite("s")
+    CodexRuntime().write_config(sprite, _spec(user, environment=env), [])
+    assert json.loads(sprite.write_map()[CODEX_AUTH_PATH]) == {"OPENAI_API_KEY": "sk-from-env"}
+
+
+@pytest.mark.django_db
+def test_write_config_secret_env_var_overrides_environment(user):
+    """secret_env_vars wins over Environment env_vars — mirrors the env-file
+    precedence so a per-run key override actually takes effect."""
+    env = Environment.objects.create(
+        user=user, name="e", env_vars={"OPENAI_API_KEY": "sk-from-env"}
+    )
+    sprite = RecordingSprite("s")
+    spec = _spec(user, secret_env_vars={"OPENAI_API_KEY": "sk-secret"}, environment=env)
+    CodexRuntime().write_config(sprite, spec, [])
+    assert json.loads(sprite.write_map()[CODEX_AUTH_PATH]) == {"OPENAI_API_KEY": "sk-secret"}
+
+
+@pytest.mark.django_db
+def test_write_config_no_key_writes_no_auth_json(user):
+    """With no key anywhere, skip the write — an empty auth.json would put
+    Codex in a broken 'ApiKey mode, no key' state instead of a clean fallback."""
+    sprite = RecordingSprite("s")
+    CodexRuntime().write_config(sprite, _spec(user), [])
+    assert CODEX_AUTH_PATH not in sprite.write_map()
+    assert CODEX_AUTH_PATH not in sprite.chmod_map()
+
+
+@pytest.mark.django_db
+def test_write_config_writes_both_auth_and_mcp(user):
+    """Auth and MCP config coexist — a session with both a key and MCP
+    servers must get both files, not one or the other."""
+    sprite = RecordingSprite("s")
+    spec = _spec(user, secret_env_vars={"OPENAI_API_KEY": "sk-x"})
+    CodexRuntime().write_config(
+        sprite,
+        spec,
+        [McpServerSpec(name="github", type="url", url="https://mcp.github.com/mcp")],
+    )
+    writes = sprite.write_map()
+    assert CODEX_AUTH_PATH in writes
+    assert "[mcp_servers.github]" in writes["/home/sprite/.codex/config.toml"]
 
 
 def test_install_is_a_no_op():

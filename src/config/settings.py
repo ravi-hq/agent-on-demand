@@ -3,8 +3,15 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Load local dev secrets from `.env` (gitignored; see `.env.example`). Real
+# environment variables take precedence (override=False is the default), so
+# deploys that inject vars directly — e.g. Render — are unaffected and the
+# absence of a `.env` there is a harmless no-op.
+load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-insecure-key-change-in-prod")
 

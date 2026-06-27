@@ -67,8 +67,13 @@ def runtime_key(user, sprites_key):
 
 
 @pytest.fixture
-def runtime_key_without_sprites(user):
-    """Legacy fixture name for negative backend-config tests."""
+def runtime_key_without_sprites(user, settings):
+    """Negative backend-config fixture: a runtime credential is present but
+    the platform Sprites token is explicitly unset. Force it to None rather
+    than relying on the ambient environment — settings.py now loads a local
+    .env (which may carry a real SPRITES_API_KEY), so an implicit default
+    would no longer be unset during tests."""
+    settings.SPRITES_API_KEY = None
     return {"ANTHROPIC_API_KEY": "fake-anthropic-key"}
 
 

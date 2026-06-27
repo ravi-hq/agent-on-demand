@@ -162,7 +162,7 @@ def test_send_prompt_to_failed_session_rejected(client, auth_headers, user):
 
 
 @pytest.mark.django_db
-def test_send_prompt_without_backend_token_returns_503(client, auth_headers, user):
+def test_send_prompt_without_backend_token_returns_503(client, auth_headers, user, settings):
     """A `completed` session when the platform Sprites token is unset hits
     the `NoBackendCredentialsError` branch synchronously: `resume_session` →
     `require_client` (session_service/client.py) raises before the view
@@ -174,6 +174,9 @@ def test_send_prompt_without_backend_token_returns_503(client, auth_headers, use
     Pin the exact `detail` so a rename of the error message string in
     client.py breaks this test loudly, rather than silently drifting away
     from the API contract SDK clients parse against."""
+    # Force the token unset rather than relying on the ambient environment —
+    # settings.py loads a local .env that may carry a real SPRITES_API_KEY.
+    settings.SPRITES_API_KEY = None
     session = AgentSession.objects.create(
         user=user, runtime="claude", prompt="x", status="completed", backend_handle="s"
     )
