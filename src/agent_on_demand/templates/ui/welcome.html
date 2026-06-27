@@ -3,8 +3,9 @@
 {% block content %}
   <h1>You're all set, {{ user.username }}</h1>
   <p class="muted">
-    We've provisioned an Agent on Demand API key below. Copy it now — it won't
-    be shown again.
+    Start in the dashboard to create agents and run sessions. We've also
+    provisioned an API key below for SDKs, CLIs, and external automation.
+    Copy it now — it won't be shown again.
   </p>
 
   <div class="reveal">
@@ -12,10 +13,10 @@
     <code id="aod-key">{{ raw_key }}</code>
   </div>
 
-  <h2>Try it</h2>
+  <h2>Use the API</h2>
   <p class="muted">
-    All endpoints authenticate with <code>Authorization: Bearer &lt;key&gt;</code>.
-    Set it once and reuse it:
+    The dashboard works without copying this key. Use it when you want to call
+    Agent on Demand from another app:
   </p>
 
   <pre><code>export AOD_API_TOKEN={{ raw_key }}
@@ -50,7 +51,7 @@ export AOD_API_URL={{ api_base }}</code></pre>
   }'</code></pre>
 
   <p>
-    Head to the <a href="{% url 'ui-dashboard' %}">dashboard</a> to browse your
-    agents, environments, and sessions.
+    Head to the <a href="{% url 'ui-agents' %}">Agents page</a> to create your
+    first agent in the dashboard.
   </p>
 {% endblock %}

@@ -5,8 +5,9 @@
     <div>
       <span class="console-kicker">Runtime</span>
       <h1>Environments</h1>
-      <p>Published runtime environments used when sessions are provisioned.</p>
+      <p>Review runtime environments that can be attached to agents and sessions.</p>
     </div>
+    <a class="console-action" href="{% url 'ui-environment-new' %}">New environment</a>
   </header>
   {% if envs %}
     <table>
@@ -26,6 +27,6 @@
       </tbody>
     </table>
   {% else %}
-    <p class="empty-state">No environments yet. Create one via the API.</p>
+    <p class="empty-state">No environments yet. Use New environment to add one, or run agents without an environment.</p>
   {% endif %}
 {% endblock %}

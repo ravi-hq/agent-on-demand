@@ -20,13 +20,28 @@ urlpatterns = [
     path("api-keys", views.api_keys, name="ui-api-keys"),
     path("api-keys/<int:key_id>/revoke", views.api_key_revoke, name="ui-api-key-revoke"),
     path("agents", views.agents_list, name="ui-agents"),
+    path("agents/new", views.agent_new, name="ui-agent-new"),
     path("agents/<uuid:agent_id>", views.agent_detail, name="ui-agent-detail"),
+    path("agents/<uuid:agent_id>/archive", views.agent_archive, name="ui-agent-archive"),
+    path("agents/<uuid:agent_id>/sessions", views.agent_start_session, name="ui-agent-start-session"),
     path("environments", views.environments_list, name="ui-environments"),
+    path("environments/new", views.environment_new, name="ui-environment-new"),
     path(
         "environments/<uuid:environment_id>",
         views.environment_detail,
         name="ui-environment-detail",
     ),
+    path(
+        "environments/<uuid:environment_id>/archive",
+        views.environment_archive,
+        name="ui-environment-archive",
+    ),
     path("sessions", views.sessions_list, name="ui-sessions"),
     path("sessions/<uuid:session_id>", views.session_detail, name="ui-session-detail"),
+    path("sessions/<uuid:session_id>/prompt", views.session_send_prompt, name="ui-session-prompt"),
+    path(
+        "sessions/<uuid:session_id>/terminate",
+        views.session_terminate,
+        name="ui-session-terminate",
+    ),
 ]

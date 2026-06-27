@@ -7,7 +7,32 @@
       <h1>{{ agent.name }}</h1>
       <p>Published agent configuration and runtime attachments.</p>
     </div>
+    {% if not agent.archived_at %}
+      <form method="post" action="{% url 'ui-agent-archive' agent.id %}" class="inline-form">
+        {% csrf_token %}
+        <button type="submit" class="button-danger">Archive agent</button>
+      </form>
+    {% endif %}
   </header>
+  {% if not agent.archived_at %}
+    <section class="action-panel">
+      <div>
+        <span class="console-kicker">Run</span>
+        <h2>Start session</h2>
+        <p>Send a prompt to this agent using its current published configuration.</p>
+      </div>
+      <form method="post" action="{% url 'ui-agent-start-session' agent.id %}" class="stacked-form">
+        {% csrf_token %}
+        <label for="{{ start_form.prompt.id_for_label }}">Prompt</label>
+        {{ start_form.prompt }}
+        <div class="form-row">
+          <label for="{{ start_form.timeout.id_for_label }}">Timeout seconds</label>
+          {{ start_form.timeout }}
+        </div>
+        <button type="submit" class="button-primary">Start session</button>
+      </form>
+    </section>
+  {% endif %}
   <dl class="kv">
     <dt>ID</dt><dd><code>{{ agent.id }}</code></dd>
     <dt>Version</dt><dd>v{{ agent.version }}</dd>
