@@ -129,6 +129,21 @@ the stdout bytes themselves.
 
 ## Development
 
+## Index
+
+- [`src/aod/`](src/aod/README.md) — Python SDK source layout.
+
+### Internal source map
+
+The package implementation is documented in
+[`src/aod/README.md`](src/aod/README.md). In short:
+
+- `client.py` resolves constructor/env config and exposes sync/async resources.
+- `resources/` maps agents, environments, and sessions endpoints.
+- `_http.py` owns httpx clients, headers, JSON parsing, and error checks.
+- `stream.py` parses SSE into typed events.
+- `pretty/` contains optional runtime-specific display helpers.
+
 ```bash
 cd clients/python
 uv pip install -e ".[dev]"

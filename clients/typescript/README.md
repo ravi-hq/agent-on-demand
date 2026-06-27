@@ -128,6 +128,23 @@ The SDK has no Node-only dependencies — it uses built-in `fetch`,
 
 ## Development
 
+## Index
+
+- [`src/`](src/README.md) — TypeScript SDK source layout.
+
+### Internal source map
+
+The package implementation is documented in [`src/README.md`](src/README.md).
+In short:
+
+- `client.ts` owns SDK configuration and resource construction.
+- `resources/` maps agents, environments, and sessions endpoints.
+- `http.ts` wraps `fetch`, timeout handling, abort-signal linking, and error
+  mapping.
+- `stream.ts` exposes `StreamHandle`, an `AsyncIterable` with explicit
+  `close()`.
+- `dist/` is generated build output, not source.
+
 ```bash
 cd clients/typescript
 npm install

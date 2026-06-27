@@ -147,6 +147,18 @@ make fmt
 
 ## Layout
 
+Read the source as a book. Each chapter links only to its direct child chapters;
+open the next README when you want more detail.
+
+### Index
+
+- [`src/README.md`](src/README.md) — server source map and request/worker flow.
+- [`clients/README.md`](clients/README.md) — SDK package map.
+- [`examples/README.md`](examples/README.md) — runnable integration patterns.
+- [`docs/README.md`](docs/README.md) — API contract and local docs artifacts.
+- [`site/README.md`](site/README.md) — MkDocs source site.
+- [`scripts/README.md`](scripts/README.md) — maintenance and CI helper scripts.
+
 ```
 src/
   config/            Django project (settings, root urls, wsgi)
